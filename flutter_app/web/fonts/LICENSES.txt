@@ -1,0 +1,6 @@
+Noto Sans TC / Noto Sans JP: SIL Open Font License 1.1 (c) The Noto Project Authors, https://github.com/notofonts/noto-cjk
+Source Sans 3: SIL Open Font License 1.1 (c) Adobe, https://github.com/adobe-fonts/source-sans
+pdfmake 0.3.11: MIT License (c) Bartek Pampuch, https://github.com/bpampuch/pdfmake (bundles PDFKit, fontkit, ...)
+pdf.js 3.11.174: Apache License 2.0 (c) Mozilla Foundation, https://github.com/mozilla/pdf.js
+
+Fonts here are only a fallback: the app loads the same fonts from jsDelivr (pinned commits) first, to save hosting bandwidth.

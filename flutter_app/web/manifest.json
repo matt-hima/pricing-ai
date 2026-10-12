@@ -1,0 +1,36 @@
+{
+  "name": "Pricing AI",
+  "short_name": "Pricing AI",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#263C5C",
+  "theme_color": "#263C5C",
+  "description": "以瀏覽器端 WebGPU LLM 評估軟體開發人月、工時與維護費，並產生 XeLaTeX 報價單。",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "lang": "zh-Hant"
+}

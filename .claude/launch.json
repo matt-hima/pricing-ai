@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quote-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8791"
+      ],
+      "port": 8791
+    },
+    {
+      "name": "flutter-web",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8792",
+        "--directory",
+        "flutter_app/build/web"
+      ],
+      "port": 8792
+    }
+  ]
+}

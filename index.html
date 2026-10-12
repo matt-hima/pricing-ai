@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>軟體開發自助估價</title>
+  <meta name="description" content="以瀏覽器端 WebGPU LLM 評估軟體開發人月、工時與維護費，並產生報價單。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-logo" id="brandLogo">₪</span><span id="brandName">自助估價</span></div>
+    <nav class="topmenu" aria-label="主選單">
+      <a href="#" class="active">商業 · 報價單</a>
+      <a href="#how">估價方式</a>
+      <a href="#contact">聯絡業務</a>
+    </nav>
+    <div class="spacer"></div>
+    <span class="gpu-badge" id="gpuBadge">偵測 WebGPU…</span>
+  </header>
+
+  <main class="layout">
+    <!-- ===== 左：Dolibarr 卡片表單 ===== -->
+    <section class="form-col" aria-label="需求填寫">
+      <div class="breadcrumb">首頁 › 商業 › 報價單 › 新增報價單</div>
+      <h2 class="pagetitle"><span class="ico">₪</span>新增報價單（自助估價）</h2>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" data-tab="me" role="tab">0 · 我的公司</button>
+        <button class="tab active" data-tab="card" role="tab">1 · 報價卡片</button>
+        <button class="tab" data-tab="spec" role="tab">2 · 平台與模組</button>
+        <button class="tab" data-tab="note" role="tab">3 · 備註</button>
+      </div>
+      <div class="tabbox">
+        <!-- 我的公司（Dolibarr：設定 › 公司/組織） -->
+        <div class="tabpane" data-pane="me">
+          <div class="section-title">報價單位（公司 / 組織）</div>
+          <table class="fiche">
+            <tr><td class="lbl req">公司名稱</td><td><input type="text" id="f_my_name" placeholder="您的公司名稱"></td></tr>
+            <tr><td class="lbl">統一編號</td><td><input type="text" id="f_my_taxid" inputmode="numeric" maxlength="8" placeholder="8 碼"></td></tr>
+            <tr><td class="lbl">地址</td><td><input type="text" id="f_my_address" placeholder="公司地址"></td></tr>
+            <tr><td class="lbl">電話</td><td><input type="text" id="f_my_phone" placeholder="02-1234-5678"></td></tr>
+            <tr><td class="lbl">業務信箱</td><td><input type="email" id="f_my_email" placeholder="sales@yourcompany.com"></td></tr>
+            <tr><td class="lbl">Logo</td><td>
+              <input type="file" id="f_my_logo" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+              <button class="btn" type="button" id="btnLogoClear" style="margin-top:6px;padding:4px 10px">移除 Logo</button>
+              <p class="hint">建議 300 KB 以內；未上傳時以公司名稱首字顯示。</p></td></tr>
+          </table>
+          <div class="section-title">計價參數</div>
+          <table class="fiche">
+            <tr><td class="lbl">人月單價（TWD，未稅）</td><td><input type="number" id="f_rate" min="10000" step="5000"></td></tr>
+            <tr><td class="lbl">每人月工時（小時）</td><td><input type="number" id="f_hpm" min="100" max="240" step="1"></td></tr>
+            <tr><td class="lbl">營業稅率（%）</td><td><input type="number" id="f_vat" min="0" max="30" step="0.5"></td></tr>
+            <tr><td class="lbl">保固期（月）</td><td><input type="number" id="f_warranty" min="0" max="24" step="1"></td></tr>
+            <tr><td class="lbl">年度維護費（% 下限 – 上限）</td><td style="display:flex;gap:6px;align-items:center">
+              <input type="number" id="f_maintmin" min="0" max="50" step="1"> – <input type="number" id="f_maintmax" min="0" max="50" step="1"></td></tr>
+          </table>
+          <p class="hint">以上資料僅存在您的瀏覽器中，不會上傳。</p>
+          <div class="actions"><button class="btn primary" data-goto="card">下一步：報價卡片 →</button></div>
+        </div>
+
+        <!-- 卡片 -->
+        <div class="tabpane active" data-pane="card">
+          <div class="section-title">第三方 / 客戶</div>
+          <table class="fiche">
+            <tr><td class="lbl req">公司 / 客戶名稱</td><td><input type="text" id="f_company" placeholder="例如：森林咖啡股份有限公司"></td></tr>
+            <tr><td class="lbl">統一編號</td><td><input type="text" id="f_taxid" inputmode="numeric" maxlength="8" placeholder="8 碼（選填）"></td></tr>
+            <tr><td class="lbl req">聯絡人</td><td><input type="text" id="f_contact" placeholder="王小明"></td></tr>
+            <tr><td class="lbl">電子郵件</td><td><input type="email" id="f_email" placeholder="name@company.com"></td></tr>
+            <tr><td class="lbl">電話</td><td><input type="text" id="f_phone" placeholder="02-1234-5678"></td></tr>
+            <tr><td class="lbl">客戶參考編號</td><td><input type="text" id="f_refclient" placeholder="內部專案代號（選填）"></td></tr>
+          </table>
+          <div class="section-title">報價條件</div>
+          <table class="fiche">
+            <tr><td class="lbl">專案名稱</td><td><input type="text" id="f_project" placeholder="例如：會員電商 App"></td></tr>
+            <tr><td class="lbl">報價日期</td><td><input type="date" id="f_date"></td></tr>
+            <tr><td class="lbl">有效期限（天）</td><td><input type="number" id="f_validity" min="7" max="90" value="30"></td></tr>
+            <tr><td class="lbl">付款條件</td><td>
+              <select id="f_payterm">
+                <option value="3-4-3">簽約 30% / 期中 40% / 驗收 30%</option>
+                <option value="5-5">簽約 50% / 驗收 50%</option>
+                <option value="monthly">依里程碑按月請款</option>
+              </select></td></tr>
+            <tr><td class="lbl">付款方式</td><td>
+              <select id="f_paymode">
+                <option>銀行匯款</option><option>支票</option><option>信用卡</option>
+              </select></td></tr>
+            <tr><td class="lbl">期望上線時程</td><td>
+              <select id="f_urgency">
+                <option value="normal">依建議時程（標準）</option>
+                <option value="rush">急件，需壓縮時程（+25%）</option>
+                <option value="flex">彈性，可分期開發（-5%）</option>
+              </select></td></tr>
+            <tr><td class="lbl">預算範圍（參考）</td><td>
+              <select id="f_budget">
+                <option value="">未定</option>
+                <option>30 萬以下</option><option>30–80 萬</option><option>80–200 萬</option><option>200 萬以上</option>
+              </select></td></tr>
+            <tr><td class="lbl">來源</td><td>
+              <select id="f_source"><option>官網</option><option>朋友推薦</option><option>搜尋引擎</option><option>社群媒體</option><option>其他</option></select></td></tr>
+          </table>
+          <div class="actions"><button class="btn primary" data-goto="spec">下一步：平台與模組 →</button></div>
+        </div>
+
+        <!-- 規格 -->
+        <div class="tabpane" data-pane="spec">
+          <div class="section-title">專案類型</div>
+          <div class="chips" id="typeChips"></div>
+          <div class="section-title">目標平台</div>
+          <div class="chips" id="platformChips"></div>
+          <p class="hint">同時勾選 iOS 與 Android 時，可選擇跨平台框架（Flutter / React Native）以降低成本。</p>
+          <div class="chips" id="appTechChips" style="margin-top:6px"></div>
+          <div class="section-title">UI / UX 設計等級</div>
+          <div class="chips" id="designChips"></div>
+          <div class="section-title">核心功能模組 <span class="ai-tag">可補充白話描述</span></div>
+          <div class="modules" id="moduleList"></div>
+          <div class="actions"><button class="btn" data-goto="card">← 上一步</button><button class="btn primary" data-goto="note">下一步：備註 →</button></div>
+        </div>
+
+        <!-- 備註 -->
+        <div class="tabpane" data-pane="note">
+          <div class="section-title">專案整體描述（公開備註）</div>
+          <textarea id="f_summary" rows="5" placeholder="用大白話描述就好，例如：我們是連鎖咖啡店，想做會員點餐 App，客人可以預先點餐、累積點數，門市用平板接單…"></textarea>
+          <div class="section-title">其他特殊需求</div>
+          <textarea id="f_extra" rows="3" placeholder="例如：需要與現有 POS 系統對接、資料要存在台灣機房、需通過資安檢測…"></textarea>
+          <div class="section-title">參考網站 / App</div>
+          <input type="text" id="f_refsite" placeholder="https://…（選填）" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--paper)">
+          <div class="actions">
+            <button class="btn" data-goto="spec">← 上一步</button>
+            <button class="btn primary" id="btnEstimate2">⚡ 產生 AI 評估報價</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 中：報價單 ===== -->
+    <article class="paper" id="paper" aria-label="報價單預覽">
+      <div class="doc-head">
+        <div class="doc-company">
+          <div class="logo" id="docLogo"></div>
+          <b id="docCompany"></b>
+          <div id="docCompanyInfo"></div>
+        </div>
+        <div class="doc-title">
+          <h1>報價單</h1>
+          <div class="ref" id="docRef"></div>
+          <span class="status s0" id="docStatus">草稿</span>
+        </div>
+      </div>
+
+      <div class="doc-meta">
+        <div class="addr">
+          <div class="cap">報價對象</div>
+          <div id="docClient"></div>
+        </div>
+        <table class="kv">
+          <tr><td>報價日期</td><td id="docDate"></td></tr>
+          <tr><td>有效期限至</td><td id="docValid"></td></tr>
+          <tr><td>客戶參考編號</td><td id="docRefClient"></td></tr>
+          <tr><td>付款條件</td><td id="docPayterm"></td></tr>
+          <tr><td>付款方式</td><td id="docPaymode"></td></tr>
+          <tr><td>預估交付時程</td><td id="docDelivery"></td></tr>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table class="lines">
+          <thead><tr>
+            <th>說明</th><th class="num">稅率</th><th class="num">單價（未稅）</th><th class="num">數量</th><th>單位</th><th class="num">折扣</th><th class="num">小計（未稅）</th>
+          </tr></thead>
+          <tbody id="docLines"></tbody>
+        </table>
+      </div>
+
+      <div class="totals-row">
+        <div class="note-public" id="docNote"></div>
+        <table class="totals">
+          <tr><td>金額（未稅）</td><td id="tHT"></td></tr>
+          <tr><td>營業稅 <span id="tVatRate"></span></td><td id="tVAT"></td></tr>
+          <tr class="grand"><td>金額（含稅）</td><td id="tTTC"></td></tr>
+          <tr class="range"><td>預估總價範圍（含稅）</td><td id="tRange"></td></tr>
+        </table>
+      </div>
+
+      <section class="doc-section">
+        <h2>1. 專案開發總價範圍</h2>
+        <div class="kpis" id="docKpis"></div>
+      </section>
+
+      <section class="doc-section">
+        <h2>2. 人月工時（Man-Month）拆解</h2>
+        <ul class="mm-list" id="docMM"></ul>
+      </section>
+
+      <section class="doc-section">
+        <h2>3. 後續維護費用</h2>
+        <ul class="bullets" id="docMaint"></ul>
+      </section>
+
+      <section class="doc-section two-col" id="docAiSection" hidden>
+        <div><h2>評估假設</h2><ul class="bullets" id="docAssume"></ul></div>
+        <div><h2>風險與不含項目</h2><ul class="bullets" id="docRisk"></ul></div>
+      </section>
+
+      <div class="disclaimer" id="how">
+        <b>⚠️ 免責聲明：</b>本系統由 AI 根據現有描述進行初步工程評估，估算結果僅供預算規劃參考，
+        正式合約報價以商務人員正式評估為準。報價上限已內含 <span id="docBuffer"></span> 風險係數（Risk Buffer），
+        實際範圍將於需求訪談後確認。
+      </div>
+
+      <div class="sign">
+        <div>報價單位簽章</div>
+        <div>客戶確認簽章 / 日期</div>
+      </div>
+    </article>
+
+    <!-- ===== 右：側欄 ===== -->
+    <aside class="sidebar no-print">
+      <div class="card">
+        <h3>AI 評估引擎</h3>
+        <label class="f" for="modelSel">本地模型（WebGPU）</label>
+        <select id="modelSel"></select>
+        <p class="hint" id="modelHint"></p>
+        <div class="progress"><i id="progBar"></i></div>
+        <div class="progress-text" id="progText">模型尚未載入</div>
+        <div class="stack" style="margin-top:10px">
+          <button class="btn primary block" id="btnEstimate">⚡ 產生 AI 評估報價</button>
+          <button class="btn block" id="btnRule">僅用規則快速估算</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>動作</h3>
+        <div class="stack">
+          <button class="btn block" id="btnPrint">🖨 建立 PDF / 列印</button>
+          <button class="btn block" id="btnCopy">📋 複製報價摘要</button>
+          <button class="btn block" id="btnJson">⬇ 下載報價資料（JSON）</button>
+          <a class="btn block" id="btnMail" href="#">✉ 寄給業務正式評估</a>
+          <button class="btn block" id="btnReset">↺ 重設表單</button>
+        </div>
+      </div>
+      <div class="card" id="contact">
+        <h3>評估方式</h3>
+        <p class="hint" style="margin:0">
+          模型完全在您的瀏覽器中執行，需求內容不會上傳伺服器。金額由程式依人月單價計算，AI 僅負責拆解功能與工時；
+          若裝置不支援 WebGPU，會自動改用規則引擎估算。
+        </p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
