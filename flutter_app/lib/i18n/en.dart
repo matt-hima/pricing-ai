@@ -354,6 +354,8 @@ const Map<String, String> enStrings = {
   'dlg.resetBody': "Clear the quotation content? Your company details and pricing parameters are kept.",
   'side.about': "How it is estimated",
   'side.aboutBody': "The model runs entirely in your browser and your input is not uploaded to a server. Prices are computed by code from the man-month rate; the AI only breaks down features and hours. If your device lacks WebGPU, the rules engine is used automatically. Results are for testing and reference only.",
+  'upd.version': "Version {version}",
+  'upd.check': "Check for updates",
   'view.paper': "Quotation",
   'view.pdf': "Live PDF preview",
   'st.compiling': "Generating…",

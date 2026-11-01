@@ -354,6 +354,8 @@ const Map<String, String> ptStrings = {
   'dlg.resetBody': "Limpar o conteúdo do orçamento? Os dados da empresa e os parâmetros de preço são mantidos.",
   'side.about': "Como é estimado",
   'side.aboutBody': "O modelo é executado inteiramente no seu navegador e o que você digita não é enviado a nenhum servidor. Os preços são calculados pelo código a partir do valor do homem-mês; a IA apenas divide funcionalidades e horas. Se o dispositivo não tiver WebGPU, o mecanismo de regras é usado automaticamente. Os resultados são apenas para teste e referência.",
+  'upd.version': "Versão {version}",
+  'upd.check': "Verificar atualizações",
   'view.paper': "Orçamento",
   'view.pdf': "Pré-visualização do PDF",
   'st.compiling': "Gerando…",

@@ -28,5 +28,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUPublicEDKey</key>
+	<string>tPRnEmB1+2Qg6kXA11aVr97Jm7oFIIZVwma92s7jUPM=</string>
 </dict>
 </plist>

@@ -74,6 +74,8 @@ Pricing AI は、小さなサービス業とソフトウェア開発会社が自
 3. Pricing AI を起動します。このビルドはまだ Apple Developer ID で署名されていないため、初回は macOS が「開発元を確認できません」と表示する場合があります。「**システム設定 → プライバシーとセキュリティ**」で「**このまま開く**」を押してください（初回のみ）。
 4. 最初の AI 作業で AI エンジンとモデルを一度だけダウンロードします（0.5〜5 GB）。その後はパソコン上で AI が動きます。
 
+バージョン 0.2.0 から App は自動でアップデートされます。起動時と 1 日 1 回新しいバージョンを確認し、右欄の「見積もりの方法」に「アップデートを確認」もあります。0.1.0 には更新機能がないため、0.2.0 は一度だけ手動でインストールしてください。
+
 Windows 版は近日公開予定です。
 
 ### 動作環境
@@ -130,6 +132,7 @@ LIVE_ENGINE_STORAGE=/path/to/pricing-ai caffeinate -d -i flutter test integratio
 | `tool/deploy.sh` | チェック、テスト、`/app/` 向けの Web 版ビルド、サイトの組み立て、Firebase Hosting への公開（`--no-deploy` はビルドのみ） |
 | `tool/build_site.sh` | `build/site` を組み立てる：公式サイトは `/`、Web 版は `/app/` |
 | `python3 tool/gen_landing.py` | ダウンロード中心の公式サイトを 5 言語で生成（インストーラーのリンクは `HOSTED_URLS`） |
+| `tool/release_mac.sh` | Mac のリリースファイルを `dist/` に作成：DMG、自動アップデート用の Sparkle 署名付き `appcast.xml`、リリースノートの SHA-256（手順はスクリプト冒頭） |
 | `python3 tool/gen_notices.py` | 第三者ライセンスの一覧と全文を再生成 |
 | `python3 tool/check_i18n.py` | 5 言語の文字列がそろっているか確認 |
 

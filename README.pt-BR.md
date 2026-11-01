@@ -74,6 +74,8 @@ A versão do navegador, inclusive o atalho que o Chrome oferece instalar ("Prici
 3. Abra o Pricing AI. Esta versão ainda não é assinada com um Apple Developer ID, então na primeira vez o macOS pode dizer que não consegue verificar o desenvolvedor: abra **Ajustes do Sistema → Privacidade e Segurança** e clique em **Abrir Mesmo Assim** (só uma vez).
 4. A primeira tarefa de IA baixa o motor e um modelo uma vez (0,5–5 GB). Depois, a IA roda no seu computador.
 
+A partir da versão 0.2.0 o app se atualiza sozinho: procura uma nova versão ao abrir e uma vez por dia, e **Verificar atualizações** fica em *Como é estimado* na coluna da direita. A versão 0.1.0 não tem atualizador, então instale a 0.2.0 uma vez à mão.
+
 A versão para Windows chega em breve.
 
 ### Requisitos do sistema
@@ -130,6 +132,7 @@ Site e ferramentas:
 | `tool/deploy.sh` | Verifica, testa, compila o app web em `/app/`, monta o site e publica no Firebase Hosting (`--no-deploy` só compila) |
 | `tool/build_site.sh` | Monta `build/site`: página inicial em `/`, app web em `/app/` |
 | `python3 tool/gen_landing.py` | Gera a página inicial focada no download em 5 idiomas (links dos instaladores em `HOSTED_URLS`) |
+| `tool/release_mac.sh` | Gera a versão para Mac em `dist/`: DMG, `appcast.xml` assinado pelo Sparkle para a atualização automática, SHA-256 nas notas da versão (passos no início do script) |
 | `python3 tool/gen_notices.py` | Gera de novo os avisos e textos de licença de terceiros |
 | `python3 tool/check_i18n.py` | Verifica se os 5 idiomas têm os mesmos textos |
 

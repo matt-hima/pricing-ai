@@ -354,6 +354,8 @@ const Map<String, String> esStrings = {
   'dlg.resetBody': "¿Borrar el contenido del presupuesto? Los datos de la empresa y los parámetros de precio se conservan.",
   'side.about': "Cómo se estima",
   'side.aboutBody': "El modelo se ejecuta por completo en su navegador y lo que escribe no se sube a ningún servidor. Los precios los calcula el código a partir de la tarifa por persona-mes; la IA solo desglosa funciones y horas. Si su dispositivo no tiene WebGPU, se usa automáticamente el motor de reglas. Los resultados son solo para pruebas y referencia.",
+  'upd.version': "Versión {version}",
+  'upd.check': "Buscar actualizaciones",
   'view.paper': "Presupuesto",
   'view.pdf': "Vista previa del PDF",
   'st.compiling': "Generando…",

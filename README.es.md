@@ -74,6 +74,8 @@ La versión de navegador, incluido el acceso directo que Chrome ofrece instalar 
 3. Abre Pricing AI. Esta versión aún no está firmada con un Apple Developer ID, así que la primera vez macOS puede decir que no puede verificar al desarrollador: abre **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente** (solo una vez).
 4. La primera tarea de IA descarga una vez el motor y un modelo (0,5–5 GB). Después, la IA funciona en tu ordenador.
 
+A partir de la versión 0.2.0 la app se actualiza sola: busca una versión nueva al abrirse y una vez al día, y **Buscar actualizaciones** está en *Cómo se estima* en la columna derecha. La versión 0.1.0 no tiene actualizador, así que instala la 0.2.0 una vez a mano.
+
 La versión para Windows llegará pronto.
 
 ### Requisitos del sistema
@@ -130,6 +132,7 @@ Web y herramientas:
 | `tool/deploy.sh` | Comprueba, prueba, compila la app web en `/app/`, monta el sitio y lo publica en Firebase Hosting (`--no-deploy` solo compila) |
 | `tool/build_site.sh` | Monta `build/site`: página de inicio en `/`, app web en `/app/` |
 | `python3 tool/gen_landing.py` | Genera la página de inicio centrada en la descarga en 5 idiomas (enlaces de instaladores en `HOSTED_URLS`) |
+| `tool/release_mac.sh` | Genera la versión para Mac en `dist/`: DMG, `appcast.xml` firmado con Sparkle para la actualización automática, SHA-256 en las notas de la versión (pasos al inicio del script) |
 | `python3 tool/gen_notices.py` | Vuelve a generar los avisos y textos de licencias de terceros |
 | `python3 tool/check_i18n.py` | Comprueba que los 5 idiomas tienen los mismos textos |
 

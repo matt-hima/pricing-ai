@@ -74,6 +74,8 @@ App 有四個分頁。
 3. 啟動 Pricing AI。這個版本還沒有 Apple Developer ID 簽章，第一次打開時 macOS 可能會說無法驗證開發者：請到「**系統設定 → 隱私權與安全性**」按「**仍要打開**」（只需一次）。
 4. 第一次使用 AI 時會下載一次 AI 引擎與模型（0.5–5 GB），之後 AI 就在你的電腦上執行。
 
+從 0.2.0 版起 App 會自動更新：啟動時與每天檢查一次新版，右欄「評估方式」裡也有「檢查更新」。0.1.0 版沒有更新功能，請手動安裝一次 0.2.0。
+
 Windows 版即將推出。
 
 ### 系統需求
@@ -130,6 +132,7 @@ LIVE_ENGINE_STORAGE=/path/to/pricing-ai caffeinate -d -i flutter test integratio
 | `tool/deploy.sh` | 檢查、測試、以 `/app/` 建置網頁版、組合網站並部署到 Firebase Hosting（`--no-deploy` 只建置） |
 | `tool/build_site.sh` | 組合 `build/site`：官網在 `/`，網頁版在 `/app/` |
 | `python3 tool/gen_landing.py` | 產生 5 種語言、以下載為主的官網（安裝檔連結在 `HOSTED_URLS`） |
+| `tool/release_mac.sh` | 建置 Mac 發佈檔到 `dist/`：DMG、自動更新用的 Sparkle 簽章 `appcast.xml`、release notes 的 SHA-256（步驟寫在腳本開頭） |
 | `python3 tool/gen_notices.py` | 重新產生第三方授權聲明與全文 |
 | `python3 tool/check_i18n.py` | 檢查 5 種語言的字串是否一致 |
 

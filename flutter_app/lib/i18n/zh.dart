@@ -355,6 +355,8 @@ const Map<String, String> zhStrings = {
   'dlg.resetBody': "確定要清除報價內容？「我的公司」資料與計價參數會保留。",
   'side.about': "評估方式",
   'side.aboutBody': "模型完全在您的瀏覽器中執行，需求內容不會上傳伺服器。金額由程式依人月單價計算，AI 僅負責拆解功能與工時；若裝置不支援 WebGPU，會自動改用規則引擎估算。本結果僅供測試參考。",
+  'upd.version': "版本 {version}",
+  'upd.check': "檢查更新",
   'view.paper': "報價單",
   'view.pdf': "PDF 即時預覽",
   'st.compiling': "產生中…",

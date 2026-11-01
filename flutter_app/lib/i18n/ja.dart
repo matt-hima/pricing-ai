@@ -354,6 +354,8 @@ const Map<String, String> jaStrings = {
   'dlg.resetBody': "見積内容を消去しますか？「自社情報」と価格パラメータは保持されます。",
   'side.about': "見積もりの方法",
   'side.aboutBody': "モデルはすべてお使いのブラウザ内で動作し、入力内容はサーバーに送信されません。金額は人月単価をもとにプログラムが計算し、AIは機能と工数の分解のみを担当します。端末が WebGPU に対応していない場合は、自動的にルールエンジンで見積もります。結果はテスト・参考用です。",
+  'upd.version': "バージョン {version}",
+  'upd.check': "アップデートを確認",
   'view.paper': "見積書",
   'view.pdf': "PDF リアルタイムプレビュー",
   'st.compiling': "作成中…",
