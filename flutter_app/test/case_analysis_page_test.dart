@@ -25,7 +25,7 @@ void main() {
     final queries = <CaseQuery>[];
     final autos = <(bool, int, int)>[];
     // 假的「內嵌瀏覽器」：第一次看了清單頁，之後再點開一件案件
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0, KnownDetails? known}) async {
       queries.add(q);
       autos.add((auto, details, rivals));
       final col = prior ?? CaseCollection();
@@ -45,7 +45,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     final key = GlobalKey();
-    await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(home: CaseAnalysisPage(state: AppState(), collect: fake))));
+    await tester.pumpWidget(RepaintBoundary(key: key, child: MaterialApp(theme: ThemeData.dark(), home: CaseAnalysisPage(state: AppState(), collect: fake, openStore: () async => null))));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, '網站');
@@ -71,6 +71,31 @@ void main() {
     expect(find.text(tr('case.comp')), findsOneWidget); // 點開的公告有投標廠商 → 潛在競爭對手
     expect(find.text(tr('case.d.winners')), findsOneWidget);
     expect(find.textContaining('凌網資訊股份有限公司'), findsWidgets);
+
+    // 分享用摘要：有結果就有文字，可以複製；評選委員不寫姓名
+    final share = tester.widget<SelectableText>(find.byKey(const ValueKey('case.share.text'))).data!;
+    expect(share, startsWith(tr('report.title', {'k': '網站'})));
+    expect(share, contains('【${tr('case.summary')}】'));
+    expect(share, contains('【${tr('case.position')}】'));
+    expect(share, contains('1,000,000')); // 自己的報價
+    expect(share, contains('【${tr('case.detail')}】'));
+    expect(share, contains(tr('report.source.pcc')));
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String;
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.tap(find.text(tr('case.share.copy')));
+    await tester.pump();
+    expect(copied, share);
+    expect(find.text(tr('case.pdf')), findsOneWidget);
+    // 圖表都有「複製圖片」「下載 PNG」
+    for (final f in ['case-amounts', 'case-price-position']) {
+      expect(find.byKey(ValueKey('chart.copy:$f')), findsOneWidget);
+      expect(find.byKey(ValueKey('chart.save:$f')), findsOneWidget);
+    }
+    expect(find.byKey(const ValueKey('chart.watermark')), findsNWidgets(2)); // 每張圖都有浮水印
     expect(tester.takeException(), isNull);
 
     if (shot != null) {

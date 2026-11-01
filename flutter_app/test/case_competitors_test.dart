@@ -81,7 +81,7 @@ void main() {
   testWidgets('competitor dialog looks up won + bid records right away', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final asked = <CaseQuery>[];
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0, KnownDetails? known}) async {
       asked.add(q);
       final col = CaseCollection();
       for (final u in q.urls) {
@@ -93,7 +93,7 @@ void main() {
     tester.view.physicalSize = const Size(1000, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CompetitorDialog(name: '凌網資訊股份有限公司', taxId: '56610834', keyword: '網站', collect: fake))));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CompetitorDialog(name: '凌網資訊股份有限公司', taxId: '56610834', keyword: '網站', collect: fake, openStore: () async => null))));
     await tester.pumpAndSettle();
     expect(asked.single.vendor, '凌網資訊股份有限公司');
     expect(asked.single.urls.map(searchKey), ['won:凌網資訊股份有限公司', 'bid:凌網資訊股份有限公司']);

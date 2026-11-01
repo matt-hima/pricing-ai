@@ -223,6 +223,11 @@ class CaseStats {
   final List<MapEntry<String, int>> topAgencies, methods;
   const CaseStats({required this.count, required this.min, required this.p25, required this.median, required this.p75, required this.max, required this.mean, required this.bands, required this.topAgencies, required this.methods});
 
+  /// 只有金額時（例如從資料庫查出來的）：機關與招標方式另外查
+  static CaseStats ofAmounts(List<double> amounts) => of([
+        for (final a in amounts) AwardCase(agency: '', caseNo: '', name: '', method: '', category: '', date: null, amount: a, url: ''),
+      ]);
+
   static CaseStats of(List<AwardCase> cases) {
     final a = [for (final c in cases) c.amount]..sort();
     List<MapEntry<String, int>> top(Iterable<String> keys, int n) {

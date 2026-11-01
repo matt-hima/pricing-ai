@@ -38,7 +38,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | Stable Diffusion 1.5 | [CreativeML OpenRAIL-M](https://huggingface.co/spaces/CompVis/stable-diffusion-license) |
 | Stable Diffusion 2.1 / SDXL base 1.0 | [CreativeML OpenRAIL++-M](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md) |
 
-## Dart and Flutter packages (86)
+## Dart and Flutter packages (99)
 
 | Package | Version | License |
 |---|---|---|
@@ -49,8 +49,11 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | clock | 1.1.2 | Apache-2.0 |
 | code_assets | 1.2.1 | BSD-3-Clause |
 | collection | 1.19.1 | BSD-3-Clause |
+| convert | 3.1.2 | BSD-3-Clause |
 | cross_file | 0.3.5+5 | BSD-3-Clause |
 | crypto | 3.0.7 | BSD-3-Clause |
+| drift | 2.35.3 | MIT |
+| drift_flutter | 0.3.1 | MIT |
 | ffi | 2.2.0 | BSD-3-Clause |
 | file | 7.0.1 | BSD-3-Clause |
 | file_selector | 1.1.0 | BSD-3-Clause |
@@ -61,6 +64,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | file_selector_platform_interface | 2.7.0 | BSD-3-Clause |
 | file_selector_web | 0.9.5 | BSD-3-Clause |
 | file_selector_windows | 0.9.3+6 | BSD-3-Clause |
+| fixnum | 1.1.1 | BSD-3-Clause |
 | flutter | 0.0.0 | BSD-3-Clause (Flutter SDK) |
 | flutter_inappwebview | 6.1.5 | Apache-2.0 |
 | flutter_inappwebview_android | 1.1.3 | Apache-2.0 |
@@ -73,6 +77,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | flutter_localizations | 0.0.0 | BSD-3-Clause (Flutter SDK) |
 | flutter_svg | 2.3.0 | MIT |
 | flutter_web_plugins | 0.0.0 | BSD-3-Clause (Flutter SDK) |
+| glob | 2.2.0 | BSD-3-Clause |
 | hooks | 2.0.2 | BSD-3-Clause |
 | http | 1.6.0 | BSD-3-Clause |
 | http_parser | 4.1.2 | BSD-3-Clause |
@@ -84,8 +89,10 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | logging | 1.3.0 | BSD-3-Clause |
 | material_color_utilities | 0.13.0 | Apache-2.0 |
 | meta | 1.18.0 | BSD-3-Clause |
+| native_toolchain_c | 0.19.2 | BSD-3-Clause |
 | objective_c | 9.5.0 | BSD-3-Clause |
-| package_config | 3.0.0 | BSD-3-Clause |
+| package_config | 2.2.0 | BSD-3-Clause |
+| pasteboard | 0.6.0 | Apache-2.0 |
 | path | 1.9.1 | BSD-3-Clause |
 | path_parsing | 1.1.0 | MIT |
 | path_provider | 2.1.6 | BSD-3-Clause |
@@ -109,6 +116,11 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | shared_preferences_windows | 2.4.1 | BSD-3-Clause |
 | sky_engine | 0.0.0 | BSD-3-Clause (Flutter SDK) |
 | source_span | 1.10.2 | BSD-3-Clause |
+| sqlcipher_flutter_libs | 0.7.0+eol | Apache-2.0 |
+| sqlite3 | 3.5.2 | MIT |
+| sqlite3_flutter_libs | 0.6.0+eol | MIT |
+| stack_trace | 1.12.1 | BSD-3-Clause |
+| stream_channel | 2.1.4 | BSD-3-Clause |
 | string_scanner | 1.4.1 | BSD-3-Clause |
 | term_glyph | 1.2.2 | BSD-3-Clause |
 | typed_data | 1.4.0 | BSD-3-Clause |
@@ -120,6 +132,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | url_launcher_platform_interface | 2.3.2 | BSD-3-Clause |
 | url_launcher_web | 2.4.3 | BSD-3-Clause |
 | url_launcher_windows | 3.1.6 | BSD-3-Clause |
+| uuid | 4.6.0 | MIT |
 | vector_graphics | 1.2.4 | BSD-3-Clause |
 | vector_graphics_codec | 1.1.13 | BSD-3-Clause |
 | vector_graphics_compiler | 1.3.2 | BSD-3-Clause |

@@ -47,6 +47,9 @@ List<Map<String, dynamic>> _runs(String s, [Map<String, dynamic> style = const {
   return out;
 }
 
+/// 給其他文件（例如案件分析報告）用的同一套字型切換
+List<Map<String, dynamic>> pdfRuns(String s, [Map<String, dynamic> style = const {}]) => _runs(s, style);
+
 /// 單段文字
 Map<String, dynamic> _t(
   String s, {

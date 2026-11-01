@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:self_quote/app_state.dart';
+import 'package:self_quote/case_analysis/case_db.dart';
+import 'package:self_quote/case_analysis/case_store.dart';
 import 'package:self_quote/case_analysis/opendata.dart';
 import 'package:self_quote/case_analysis/pcc.dart';
 import 'package:self_quote/i18n/i18n.dart';
@@ -64,44 +67,46 @@ void main() {
   testWidgets('case page downloads and analyzes the official dataset', (tester) async {
     SharedPreferences.setMockInitialValues({});
     I18n.lang = Lang.zh;
-    final asked = <List<String>>[];
-    Future<List<DatasetAward>> fake(List<String> files, {void Function(int done, int total)? onProgress}) async {
-      asked.add(files);
-      onProgress?.call(files.length, files.length);
-      // 測試資料是 2026 年 8 月的；把日期改成最近，讓「近 12 個月」包含它們
-      final now = DateTime.now();
-      return [
-        for (final a in all)
-          DatasetAward(
-            name: a.name,
-            caseNo: a.caseNo,
-            category: a.category,
-            agency: a.agency,
-            method: a.method,
-            awardWay: a.awardWay,
-            winner: a.winner,
-            loser: a.loser,
-            amount: a.amount,
-            noticeDate: now.subtract(const Duration(days: 30)),
-          ),
-      ];
-    }
+    // 測試資料是 2026 年 8 月的；把日期改成最近，讓「近 12 個月」包含它們
+    final d = DateTime.now().subtract(const Duration(days: 30));
+    String ymd(DateTime x) => '${x.year}/${x.month.toString().padLeft(2, '0')}/${x.day.toString().padLeft(2, '0')}';
+    final recent = xml.replaceAll(RegExp(r'2026/08/\d\d'), ymd(d));
+    final fetch = _FakeFetcher(recent);
+    final store = CaseStore(CaseDb(NativeDatabase.memory()), fetch, pause: Duration.zero);
+    addTearDown(store.db.close);
 
     tester.view.physicalSize = const Size(1100, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(home: CaseAnalysisPage(state: AppState(), loadData: fake)));
+    await tester.pumpWidget(MaterialApp(home: CaseAnalysisPage(state: AppState(), openStore: () async => store)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '工程');
     await tester.pump();
     await tester.tap(find.text(tr('case.data.run', {'m': '12'})));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300))); // 資料庫在背景執行
     await tester.pumpAndSettle();
 
-    expect(asked.single.length, greaterThanOrEqualTo(24)); // 近 12 個月 = 至少 24 個半月檔
-    expect(find.text(tr('case.data.loaded', {'n': '4', 'm': '12'})), findsOneWidget);
+    expect(fetch.asked.length, greaterThanOrEqualTo(24)); // 近 12 個月 = 至少 24 個半月檔
+    // 每個檔都回傳同樣的 4 筆：依案號存成一件一列，只算 2 筆含「工程」
+    expect(find.text(tr('case.data.loaded', {'n': '2', 'd': '${fetch.asked.length}'})), findsOneWidget);
     expect(find.text(tr('case.data.winners')), findsOneWidget);
     expect(find.textContaining('國盛電氣工程有限公司'), findsWidgets);
     expect(find.text(tr('case.data.source')), findsOneWidget); // 授權要求的出處
     expect(tester.takeException(), isNull);
   });
+}
+
+class _FakeFetcher implements DataFetcher {
+  final String xml;
+  final asked = <String>{};
+  _FakeFetcher(this.xml);
+
+  @override
+  Future<String?> get(Uri url) async {
+    asked.add(url.queryParameters['fileName']!);
+    return xml;
+  }
+
+  @override
+  Future<int?> size(Uri url) async => null;
 }

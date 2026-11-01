@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../case_analysis/case_store.dart';
+import '../case_analysis/case_store_open.dart';
 import '../case_analysis/pcc.dart';
 import '../i18n/i18n.dart';
 import '../service_pricing/service_plan.dart' show formatMoney;
@@ -11,7 +13,8 @@ import 'case_browser_dialog.dart';
 class CompetitorDialog extends StatefulWidget {
   final String name, taxId, keyword;
   final CaseCollect collect;
-  const CompetitorDialog({super.key, required this.name, this.taxId = '', this.keyword = '', this.collect = openCaseBrowser});
+  final OpenCaseStore openStore;
+  const CompetitorDialog({super.key, required this.name, this.taxId = '', this.keyword = '', this.collect = openCaseBrowser, this.openStore = openCaseStore});
 
   @override
   State<CompetitorDialog> createState() => _CompetitorDialogState();
@@ -33,7 +36,8 @@ class _CompetitorDialogState extends State<CompetitorDialog> {
     if (running) return;
     setState(() => running = true);
     try {
-      final r = await widget.collect(context, CaseQuery.vendor(widget.name), doneLabel: tr('comp.useRecord'), auto: true, details: 0, rivals: 0);
+      final r = await widget.collect(context, CaseQuery.vendor(widget.name), doneLabel: tr('comp.useRecord'), auto: true, details: 0, rivals: 0, known: (urls) => knownDetailsIn(widget.openStore, urls));
+      if (r != null) saveCasesTo(widget.openStore, r); // 存進資料庫，之後沿用
       if (r != null && mounted) setState(() => profile = VendorProfile.of(widget.name, r));
     } finally {
       if (mounted) setState(() => running = false);

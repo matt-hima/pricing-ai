@@ -4,8 +4,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:self_quote/app_state.dart';
 import 'package:self_quote/i18n/i18n.dart';
 import 'package:self_quote/main.dart';
@@ -13,6 +15,7 @@ import 'package:self_quote/site/site_store.dart';
 import 'package:self_quote/ui/case_analysis_page.dart';
 import 'package:self_quote/ui/case_browser_dialog.dart';
 import 'package:self_quote/ui/competitor_dialog.dart';
+import 'package:self_quote/ui/save_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 真正的 Mac App：案件分析分頁在內嵌瀏覽器打開政府電子採購網，像使用者一樣點開案件；再到專案估價打開「查歷史案件」並讓 AI 摘要。
@@ -84,7 +87,9 @@ void main() {
       for (var i = 0; i < 60 && target.hitTestable().evaluate().isEmpty; i++) {
         final center = tester.getCenter(area.first);
         final pointer = TestPointer(1, PointerDeviceKind.mouse)..hover(center);
-        await tester.sendEventToBinding(pointer.scroll(const Offset(0, 120)));
+        // 目標已經建好而且在畫面上方：往上捲；否則往下
+        final up = target.evaluate().isNotEmpty && tester.getCenter(target.first).dy < tester.getTopLeft(area.first).dy;
+        await tester.sendEventToBinding(pointer.scroll(Offset(0, up ? -120 : 120)));
         await tester.pump(const Duration(milliseconds: 120));
       }
       expect(target.hitTestable(), findsWidgets, reason: 'scrolled but "$what" never appeared');
@@ -147,11 +152,18 @@ void main() {
     expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, '網頁')).selected, isTrue);
     // 官方開放資料：下載近 12 個月的決標資料檔並分析（一般檔案下載，不會遇到驗證碼）
     await click(find.text(tr('case.data.run', {'m': '12'})), 'Official dataset button');
-    await waitFor(() => find.textContaining(RegExp(r'已載入 \d+ 筆決標')).evaluate().isNotEmpty, 'the official dataset to download and load', seconds: 300);
-    final data = [for (final e in find.byType(Text).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.contains('已載入') || t.contains('得標') && t.contains('共') || t.startsWith('NT\$')).take(14).toList();
+    final loaded = RegExp(r'資料庫裡有 \d+ 筆符合的決標（這次更新了 (\d+) 個資料檔）');
+    await waitFor(() => find.textContaining(loaded).evaluate().isNotEmpty, 'the official dataset to download and load', seconds: 300);
+    final data = [for (final e in find.byType(Text).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.contains('資料庫裡有') || t.contains('得標') && t.contains('共') || t.startsWith('NT\$')).take(14).toList();
     // ignore: avoid_print
     print('OPEN DATA: $data');
     await shot('0_open_data');
+    // 再分析一次：資料已在資料庫，今天查過的檔不再下載
+    final again = Stopwatch()..start();
+    await click(find.text(tr('case.data.run', {'m': '12'})), 'Official dataset button (again)');
+    await waitFor(() => find.textContaining(RegExp(r'這次更新了 0 個資料檔')).evaluate().isNotEmpty, 'the second analysis to read only the database', seconds: 60);
+    // ignore: avoid_print
+    print('OPEN DATA AGAIN: ${again.elapsedMilliseconds} ms, nothing downloaded');
     await click(find.text(tr('case.search')), 'Analyze button');
     await autoRun('1_browser');
     // 結果在官方開放資料卡片下面（清單是 lazy 的，畫面外還沒建出來）：用滾輪捲到概況
@@ -167,7 +179,8 @@ void main() {
     print('NOTICES READ: $noticesRead (verification: $sawVerification)');
     if (noticesRead) {
       await wheelTo(page, find.text(tr('case.d.winners')), 'Frequent winners section');
-      await wheelTo(page, find.textContaining(RegExp(r'近 12 個月得標')), 'auto-looked-up competitor record');
+      // 只找競爭對手卡片的 Text（分享用摘要裡也有同樣的字）
+      await wheelTo(page, find.byWidgetPredicate((w) => w is Text && (w.data ?? '').contains('近 12 個月得標')), 'auto-looked-up competitor record');
       await shot('3a_competitors');
       await wheelTo(page, find.text(tr('case.rev')), 'Reviewer cross-reference card');
       final rev = [for (final e in find.byType(Text).hitTestable().evaluate()) (e.widget as Text).data ?? ''].where((t) => t.contains('評選') || t.contains('得標：')).toList();
@@ -205,6 +218,39 @@ void main() {
     }
 
     // 2) 專案估價：點「查歷史案件」→ 採購網自動打開 → 點開一件 → 「AI 摘要這些案件」→ 等摘要 → 關閉
+    // 分享與匯出：複製摘要文字、把圖表複製成圖片與存成 PNG、匯出 PDF 報告（存檔對話框由測試代替）
+    final out = Platform.environment['CASE_EXPORT'] ?? Directory.systemTemp.createTempSync('case_export').path;
+    debugSaveBytes = (bytes, name, mime) async => (File('$out/$name')..writeAsBytesSync(bytes)).path;
+    addTearDown(() => debugSaveBytes = null);
+    await wheelTo(page, find.text(tr('case.share.copy')), 'Copy summary text button');
+    await click(find.text(tr('case.share.copy')), 'Copy summary text button');
+    final shared = (await Clipboard.getData('text/plain'))?.text ?? '';
+    expect(shared, contains('【${tr('case.summary')}】'));
+    // ignore: avoid_print
+    print('SHARE TEXT:\n$shared');
+    final chartCopy = find.byKey(const ValueKey('chart.copy:case-amounts'));
+    await wheelTo(page, chartCopy, 'Copy chart image button');
+    await click(chartCopy, 'Copy chart image button');
+    await waitFor(() => find.text(tr('chart.copied')).evaluate().isNotEmpty, 'the chart to be copied', seconds: 10);
+    final pasted = await Pasteboard.image;
+    expect(pasted, isNotNull, reason: 'the chart should be on the clipboard as an image');
+    await click(find.byKey(const ValueKey('chart.save:case-amounts')), 'Download chart PNG button');
+    await waitFor(() => Directory(out).listSync().any((f) => f.path.endsWith('.png')), 'the chart PNG', seconds: 10);
+    await wheelTo(page, find.text(tr('case.pdf')), 'Export PDF button');
+    await click(find.text(tr('case.pdf')), 'Export PDF button');
+    await waitFor(
+      () => find.textContaining(tr('case.pdf.saved', {'p': ''})).evaluate().isNotEmpty || find.textContaining(tr('case.pdf.failed', {'e': ''})).evaluate().isNotEmpty,
+      'the PDF report',
+      seconds: 180,
+    );
+    expect(find.textContaining(tr('case.pdf.failed', {'e': ''})), findsNothing);
+    final pdf = Directory(out).listSync().whereType<File>().firstWhere((f) => f.path.endsWith('.pdf'));
+    expect(String.fromCharCodes(pdf.readAsBytesSync().take(4)), '%PDF');
+    // ignore: avoid_print
+    print('EXPORTS: clipboard image ${pasted!.length} bytes; ${[for (final f in Directory(out).listSync().whereType<File>()) '${f.path} (${f.lengthSync()} bytes)'].join(', ')}');
+    await shot('3_exported');
+    debugSaveBytes = null;
+
     await click(find.text(tr('shell.pricing')), 'Project estimate tab');
     await click(find.text(tr('hist.button')), 'Past cases button');
     await autoRun('4_hist_browser');

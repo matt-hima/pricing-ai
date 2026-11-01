@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:self_quote/app_state.dart';
@@ -20,7 +21,7 @@ void main() {
   testWidgets('opens the procurement browser right away and keeps results when the AI is unavailable', (tester) async {
     final list = File('test/fixtures/pcc_awards.html').readAsStringSync();
     final opened = <(CaseQuery, String?)>[];
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0, KnownDetails? known}) async {
       opened.add((q, doneLabel));
       return CaseCollection()..addPage(q.url.toString(), list);
     }
@@ -29,7 +30,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final s = AppState()..q.type = 'corporate';
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CaseHistoryDialog(state: s, collect: fake))));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CaseHistoryDialog(state: s, collect: fake, openStore: () async => null))));
     await tester.pumpAndSettle();
 
     expect(opened, hasLength(1));
@@ -40,6 +41,18 @@ void main() {
     expect(find.text(tr('hist.cases')), findsOneWidget);
     expect(find.textContaining(tr('hist.aiError', {'e': ''}).trim()), findsOneWidget);
     expect(find.text(tr('hist.rerun')), findsOneWidget);
+    // AI 摘要失敗也能複製摘要：價格與競爭由程式依統計寫
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String;
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.tap(find.text(tr('hist.copy')));
+    await tester.pump();
+    expect(copied, contains(tr('hist.f.noDetail')));
+    expect(copied, contains('【${tr('hist.cases')}】'));
+    expect(find.text(tr('hist.pdf')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
