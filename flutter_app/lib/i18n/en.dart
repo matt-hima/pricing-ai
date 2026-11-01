@@ -869,6 +869,8 @@ const Map<String, String> enStrings = {
   'case.rev.note': "Committee members are published after the award under Taiwan's Government Procurement Act, for transparency only. Contacting, lobbying or seeking favours from committee members is prohibited; do not use this information for that.",
   'case.browser.verification': "Skipped the remaining award notices; other results are still brought back. To see more notices later, complete the check yourself and open them by hand.",
   'case.browser.verify.title': "Please complete the verification check",
-  'case.browser.verify.body': "The procurement site asks for a check (to prevent automated mass queries). Pick the pictures on the left yourself and submit; the app then continues opening the remaining notices automatically. The app does not recognize or pick verification pictures for you.",
+  'case.browser.verify.body': "The procurement site asks for a check (to prevent automated mass queries). Pick the pictures on the left yourself and submit, then click Done, continue; once it passes, the app opens the remaining notices automatically. The app does not recognize or pick verification pictures for you.",
   'case.browser.verify.skip': "Skip the remaining notices",
+  'case.browser.verify.done': "Done, continue",
+  'case.browser.verify.notYet': "Not passed yet: the site still shows the check. Pick the pictures again and submit, or skip the remaining notices.",
 };

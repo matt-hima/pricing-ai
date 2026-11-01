@@ -96,6 +96,9 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   /// 使用者選擇略過剩下的公告：不再自動點開公告，其他步驟照常
   bool skippedNotices = false;
 
+  /// 使用者按了「已完成驗證，繼續」：重新載入公告確認；還是驗證頁就表示尚未通過
+  bool verifyChecking = false, verifyNotYet = false;
+
   bool get collecting => widget.query != null;
 
   @override
@@ -117,13 +120,23 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
       final html = await c.getHtml();
       if (html != null && isVerificationPage(html)) {
         // 暫停：停在驗證頁等使用者自己完成，完成後網站會轉到公告，下面讀到公告就自動繼續
-        debugPrint('case browser: the site asked for verification; paused for the user');
-        if (mounted) setState(() => verifyPending = true);
+        debugPrint('case browser: the site asked for verification; paused for the user${verifyChecking ? ' (still not passed after Continue)' : ''}');
+        if (mounted) {
+          setState(() {
+            verifyNotYet = verifyChecking; // 按了繼續卻還是驗證頁：提示尚未通過
+            verifyChecking = false;
+            verifyPending = true;
+          });
+        }
         return;
       }
       if (verifyPending && html != null && url.path.contains('QueryAtmAwardDetail')) {
-        debugPrint('case browser: verification completed by the user; continuing');
-        if (mounted) setState(() => verifyPending = false);
+        debugPrint('case browser: verification passed; continuing');
+        if (mounted) {
+          setState(() {
+            verifyPending = verifyChecking = verifyNotYet = false;
+          });
+        }
       }
       final added = html != null && col.addPage(url.toString(), html);
       debugPrint('case browser: read ${url.path.split('/').last} ${added ? 'ok' : 'nothing new'} (${html?.length ?? 0} chars) · cases ${col.cases.length}, notices ${col.details.length}');
@@ -142,6 +155,17 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     if (!mounted) return;
     setState(() => waiting = false);
     if (_loads == loadsNow) _runNext();
+  }
+
+  /// 使用者說已完成驗證：重新載入目前這件公告來確認（通過就會讀到公告並自動繼續，沒通過會再看到驗證頁）
+  void _continueAfterVerify() {
+    final i = next - 1;
+    if (i < 0 || i >= queue.length) return;
+    setState(() {
+      verifyChecking = true;
+      verifyNotYet = false;
+    });
+    web?.loadUrl(urlRequest: URLRequest(url: WebUri(queue[i].toString())));
   }
 
   /// 使用者不想再做驗證：略過剩下的公告，接著做後面的步驟（查廠商紀錄）或完成
@@ -335,8 +359,19 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
               ]),
               const SizedBox(height: 6),
               Text(tr('case.browser.verify.body'), style: t.bodySmall?.copyWith(color: cs.onTertiaryContainer)),
+              if (verifyNotYet) ...[
+                const SizedBox(height: 6),
+                Text(tr('case.browser.verify.notYet'), style: t.bodySmall?.copyWith(color: cs.error, fontWeight: FontWeight.w600)),
+              ],
               const SizedBox(height: 8),
-              OutlinedButton.icon(onPressed: _skipRemaining, icon: const Icon(Icons.skip_next, size: 16), label: Text(tr('case.browser.verify.skip'))),
+              Wrap(spacing: 8, runSpacing: 6, children: [
+                FilledButton.icon(
+                  onPressed: verifyChecking ? null : _continueAfterVerify,
+                  icon: verifyChecking ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check, size: 16),
+                  label: Text(tr('case.browser.verify.done')),
+                ),
+                OutlinedButton.icon(onPressed: _skipRemaining, icon: const Icon(Icons.skip_next, size: 16), label: Text(tr('case.browser.verify.skip'))),
+              ]),
             ]),
           ),
           const SizedBox(height: 12),

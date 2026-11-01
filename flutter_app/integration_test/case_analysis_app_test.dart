@@ -92,7 +92,7 @@ void main() {
     }
 
     /// 在內嵌瀏覽器裡：等搜尋結果載入 → 像使用者一樣從側欄點開 [open] 件案件 → 按完成鈕
-    var sawVerification = false;
+    var sawVerification = false, checkedContinue = false;
 
     /// 自動模式：瀏覽器自己依序查詢、點開公告、查競爭對手，完成後自動關閉。只等它，不點任何東西。
     Future<void> autoRun(String shotName, {int seconds = 300}) async {
@@ -109,6 +109,16 @@ void main() {
           await shot('${shotName}_verification');
           await pause(3000); // 確認真的停住，沒有繼續自動點開
           expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should stay paused until the user acts');
+          // 沒有完成驗證就按「已完成驗證，繼續」：App 應該重新確認，發現還沒通過，繼續停著並提示
+          if (!checkedContinue) {
+            checkedContinue = true;
+            await click(find.text(tr('case.browser.verify.done')), 'Done, continue (without completing the check)');
+            await waitFor(() => find.text(tr('case.browser.verify.notYet')).evaluate().isNotEmpty, 'the not-yet-passed message', seconds: 45);
+            expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should still be paused');
+            // ignore: avoid_print
+            print('CONTINUE CHECK: not passed detected, still paused');
+            await shot('${shotName}_not_yet');
+          }
           await click(find.text(tr('case.browser.verify.skip')), 'Skip the remaining notices');
         }
         if (DateTime.now().isAfter(end)) fail('timed out waiting for the automatic cross-reference to finish and close');

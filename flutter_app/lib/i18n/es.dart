@@ -869,6 +869,8 @@ const Map<String, String> esStrings = {
   'case.rev.note': "Los miembros del comité se publican tras la adjudicación según la Ley de Compras Públicas de Taiwán, solo por transparencia. Está prohibido contactar o presionar a los miembros; no uses esta información para ello.",
   'case.browser.verification': "Se omitieron los avisos restantes; los demás resultados se traen igual. Para ver más avisos después, completa la verificación y ábrelos a mano.",
   'case.browser.verify.title': "Completa la verificación",
-  'case.browser.verify.body': "El sitio de compras pide una verificación (para impedir consultas automáticas masivas). Elige las imágenes de la izquierda y envía; la app sigue abriendo los avisos restantes automáticamente. La app no reconoce ni elige las imágenes de verificación por ti.",
+  'case.browser.verify.body': "El sitio de compras pide una verificación (para impedir consultas automáticas masivas). Elige las imágenes de la izquierda, envía y pulsa Hecho, continuar; al superarla, la app abre los avisos restantes automáticamente. La app no reconoce ni elige las imágenes por ti.",
   'case.browser.verify.skip': "Omitir los avisos restantes",
+  'case.browser.verify.done': "Hecho, continuar",
+  'case.browser.verify.notYet': "Aún no superada: el sitio sigue mostrando la verificación. Elige las imágenes de nuevo y envía, u omite los avisos restantes.",
 };

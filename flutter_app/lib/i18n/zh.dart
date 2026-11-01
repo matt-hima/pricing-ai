@@ -870,6 +870,8 @@ const Map<String, String> zhStrings = {
   'case.rev.note': "評選委員名單依政府採購法於決標後公開，僅供了解評選情形。依法不得與評選委員接觸、請託或關說，也不要用這些資料做這類事。",
   'case.browser.verification': "已略過剩下的決標公告；其他結果照常帶回。之後若要看更多公告，可以自己完成驗證後手動點開。",
   'case.browser.verify.title': "請完成驗證碼檢核",
-  'case.browser.verify.body': "採購網要求驗證（為防止程式大量查詢）。請在左邊依畫面指示自己選好圖片並送出；完成後會自動繼續點開剩下的公告。App 不會替你辨識或點選驗證圖片。",
+  'case.browser.verify.body': "採購網要求驗證（為防止程式大量查詢）。請在左邊依畫面指示自己選好圖片並送出，然後按「已完成驗證，繼續」；通過後會自動點開剩下的公告。App 不會替你辨識或點選驗證圖片。",
   'case.browser.verify.skip': "略過剩下的公告",
+  'case.browser.verify.done': "已完成驗證，繼續",
+  'case.browser.verify.notYet': "尚未通過驗證：採購網仍顯示驗證頁。請再選一次圖片並送出，或略過剩下的公告。",
 };
