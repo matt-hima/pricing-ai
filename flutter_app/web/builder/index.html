@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Site Builder · Pricing AI</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="stylesheet" href="https://unpkg.com/grapesjs@0.21.13/dist/css/grapes.min.css">
+  <script src="https://unpkg.com/grapesjs@0.21.13/dist/grapes.min.js"></script>
+  <script src="https://unpkg.com/grapesjs-blocks-basic@1.0.2/dist/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root{--brand:#263c5c;--brand2:#3b6ea5;--line:#d6dbe3}
+    html,body{margin:0;height:100%;font:14px/1.4 -apple-system,"Segoe UI","PingFang TC",system-ui,sans-serif;overflow:hidden}
+    #app{display:flex;flex-direction:column;height:100%}
+    #bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--brand);color:#fff;flex-wrap:wrap}
+    #bar .logo{display:flex;align-items:center;gap:8px;font-weight:700;margin-right:8px;color:#fff;text-decoration:none}
+    #bar .logo img{width:26px;height:26px;border-radius:6px}
+    #bar input,#bar select{font:inherit;padding:5px 8px;border-radius:6px;border:1px solid transparent;min-width:0}
+    #bar input.slug{width:150px;font-family:ui-monospace,Menlo,monospace}
+    #bar button{font:inherit;padding:6px 12px;border-radius:6px;border:0;cursor:pointer;background:rgba(255,255,255,.14);color:#fff;white-space:nowrap}
+    #bar button:hover{background:rgba(255,255,255,.26)}
+    #bar button.primary{background:#f59e0b;color:#111827;font-weight:600}
+    #bar button:disabled{opacity:.5;cursor:default}
+    #bar .sp{flex:1}
+    #bar .dev button{padding:6px 8px}
+    #bar .dev button.on{background:rgba(255,255,255,.35)}
+    #status{font-size:12px;opacity:.85;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #user{display:flex;align-items:center;gap:6px}
+    #user img{width:24px;height:24px;border-radius:50%}
+    #gjs{flex:1;min-height:0}
+    .blk-ico{font-size:22px;margin-bottom:4px}
+    .gjs-block{min-height:72px}
+    .dlg label{display:grid;gap:4px;margin:10px 0}
+    .dlg input{font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px}
+    .dlg button{font:inherit;padding:8px 14px;border-radius:6px;border:0;background:var(--brand);color:#fff;cursor:pointer;margin-right:6px}
+    .dlg button.ghost{background:#e5e7eb;color:#111}
+    .dlg code{background:#f3f4f6;padding:1px 5px;border-radius:4px}
+    .dlg p{line-height:1.55}
+    .dlg .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#374151;margin-top:10px;white-space:pre-wrap}
+    .bk-table{width:100%;border-collapse:collapse;font-size:13px}
+    .bk-table th,.bk-table td{text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+    .bk-table button{border:0;background:none;color:#b91c1c;cursor:pointer}
+    .gjs-mdl-dialog{color:#111;background:#fff;max-width:900px}
+    .gjs-mdl-header{border-bottom:1px solid #e5e7eb}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="bar">
+      <a class="logo" href="../" title="Pricing AI"><img src="../logo.svg" alt="">Site Builder</a>
+      <select id="sitePick" title="My sites"></select>
+      <select id="siteLang" title="Site language (template text)"></select>
+      <input id="siteName" placeholder="Site name" size="14">
+      <input id="siteSlug" class="slug" placeholder="site-address" title="Site address: lowercase letters, numbers and dashes">
+      <span class="dev">
+        <button data-dev="Desktop" class="on" title="Desktop">🖥</button>
+        <button data-dev="Tablet" title="Tablet">▭</button>
+        <button data-dev="Mobile portrait" title="Mobile">📱</button>
+      </span>
+      <span id="status"></span>
+      <span class="sp"></span>
+      <button id="btnSave">Save</button>
+      <button id="btnBookings">Bookings</button>
+      <button id="btnExport">Export ZIP</button>
+      <button id="btnDeploy">Deploy to my Firebase</button>
+      <button id="btnPublish" class="primary">Publish</button>
+      <span id="user"></span>
+    </div>
+    <div id="gjs"></div>
+  </div>
+  <script type="module" src="builder.js"></script>
+</body>
+</html>

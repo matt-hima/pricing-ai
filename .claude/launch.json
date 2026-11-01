@@ -22,6 +22,42 @@
         "flutter_app/build/web"
       ],
       "port": 8792
+    },
+    {
+      "name": "site-builder",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8793",
+        "--directory",
+        "flutter_app/web"
+      ],
+      "port": 8793
+    },
+    {
+      "name": "site-builder-flutter",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8794",
+        "--directory",
+        "site_builder/build/web"
+      ],
+      "port": 8794
+    },
+    {
+      "name": "pricing-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8795",
+        "--directory",
+        "flutter_app/build/site"
+      ],
+      "port": 8795
     }
   ]
 }

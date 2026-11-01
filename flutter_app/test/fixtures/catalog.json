@@ -1,0 +1,544 @@
+[
+ {
+  "name": "set_text",
+  "description": "Change one piece of text on the page.",
+  "params": [
+   {
+    "name": "target",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "brand",
+     "brandSub",
+     "h1",
+     "h2",
+     "lead",
+     "cta",
+     "addr"
+    ],
+    "hint": "brand=business name, brandSub=tagline under it, h1/h2=hero headlines, lead=sentence under the headlines, cta=booking button text, addr=address/contact line in the footer"
+   },
+   {
+    "name": "text",
+    "type": "string",
+    "required": true,
+    "max": 120
+   }
+  ],
+  "example": {
+   "say": "Change the headline to Nails you will love",
+   "args": {
+    "action": "set_text",
+    "target": "h1",
+    "text": "Nails you will love"
+   }
+  }
+ },
+ {
+  "name": "set_row",
+  "description": "Change cells of an existing row in a list. first = service name / item / day / FAQ question, second = subtitle / price / time / FAQ answer. Give only the cells that change. A closed day is NOT removed: \"closed on Mondays\" (休み・定休 / 公休 / fechamos / cerramos) means set_row on the hours with second = Closed.",
+  "params": [
+   {
+    "name": "list",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "services",
+     "prices",
+     "hours",
+     "faq"
+    ]
+   },
+   {
+    "name": "row",
+    "type": "row",
+    "required": true,
+    "hint": "row number (1 = first) or a word that appears in the row, e.g. \"Monday\""
+   },
+   {
+    "name": "first",
+    "type": "string",
+    "required": false,
+    "max": 40
+   },
+   {
+    "name": "second",
+    "type": "string",
+    "required": false,
+    "max": 120
+   }
+  ],
+  "example": {
+   "say": "We are closed on Mondays",
+   "args": {
+    "action": "set_row",
+    "list": "hours",
+    "row": "Monday",
+    "second": "Closed"
+   }
+  }
+ },
+ {
+  "name": "add_row",
+  "description": "Add a row at the end of a list (services, prices, opening hours, or the FAQ list of questions and answers).",
+  "params": [
+   {
+    "name": "list",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "services",
+     "prices",
+     "hours",
+     "faq"
+    ]
+   },
+   {
+    "name": "first",
+    "type": "string",
+    "required": true,
+    "max": 80
+   },
+   {
+    "name": "second",
+    "type": "string",
+    "required": false,
+    "max": 120
+   }
+  ],
+  "example": {
+   "say": "Add a service called Facial for $60",
+   "args": {
+    "action": "add_row",
+    "list": "prices",
+    "first": "Facial",
+    "second": "$60"
+   }
+  }
+ },
+ {
+  "name": "remove_row",
+  "description": "Delete one row from a list completely (for example delete a price or a service). Never use it for a closed day: that is set_row.",
+  "params": [
+   {
+    "name": "list",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "services",
+     "prices",
+     "hours",
+     "faq"
+    ]
+   },
+   {
+    "name": "row",
+    "type": "row",
+    "required": true,
+    "hint": "row number or a word in the row"
+   }
+  ],
+  "example": {
+   "say": "Remove the manicure price",
+   "args": {
+    "action": "remove_row",
+    "list": "prices",
+    "row": "Manicure"
+   }
+  }
+ },
+ {
+  "name": "scale_prices",
+  "description": "Raise or lower every price in the price list by a percentage (negative = cheaper). The numbers are calculated by the app. (価格を安く・高く / 價格調低・調高 / deixar os preços mais baratos / hacer los precios más baratos)",
+  "params": [
+   {
+    "name": "percent",
+    "type": "number",
+    "required": true,
+    "min": -90,
+    "max": 300,
+    "hint": "a whole number of percent such as -10 or 15 (not a fraction like 0.15)"
+   }
+  ],
+  "example": {
+   "say": "Make everything 10% cheaper",
+   "args": {
+    "action": "scale_prices",
+    "percent": -10
+   }
+  }
+ },
+ {
+  "name": "set_color",
+  "description": "Change the main colour of buttons and accents. Use this for \"use blue\", \"change the colour\" (色を変える / 主色改成 / mudar a cor / cambiar el color), unless the owner says background.",
+  "params": [
+   {
+    "name": "color",
+    "type": "color",
+    "required": true,
+    "hint": "use the colour name the owner said (pink, blue, green, red, orange, purple, teal, brown, black, gray, …); use #rrggbb only if the owner gave a hex code"
+   }
+  ],
+  "example": {
+   "say": "Use pink as the main colour",
+   "args": {
+    "action": "set_color",
+    "color": "pink"
+   }
+  }
+ },
+ {
+  "name": "set_background",
+  "description": "Change the background colour of the whole page, the hero banner or the footer. Only when the owner says background (背景 / 背景色 / fundo / fondo).",
+  "params": [
+   {
+    "name": "target",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "page",
+     "hero",
+     "footer"
+    ]
+   },
+   {
+    "name": "color",
+    "type": "color",
+    "required": true
+   }
+  ],
+  "example": {
+   "say": "Make the footer black",
+   "args": {
+    "action": "set_background",
+    "target": "footer",
+    "color": "black"
+   }
+  }
+ },
+ {
+  "name": "set_hero_image",
+  "description": "Use a picture as the hero banner background. Needs a web address (https://…) of a picture written by the owner. An empty url removes the picture.",
+  "params": [
+   {
+    "name": "url",
+    "type": "url",
+    "required": true,
+    "allowEmpty": true
+   }
+  ],
+  "example": {
+   "say": "Use https://example.com/shop.jpg as the banner picture",
+   "args": {
+    "action": "set_hero_image",
+    "url": "https://example.com/shop.jpg"
+   }
+  }
+ },
+ {
+  "name": "set_line_link",
+  "description": "Set where the green LINE button goes. Needs a web address (https://…) written by the owner.",
+  "params": [
+   {
+    "name": "url",
+    "type": "url",
+    "required": true
+   }
+  ],
+  "example": {
+   "say": "Send the LINE button to https://line.me/R/ti/p/@mia",
+   "args": {
+    "action": "set_line_link",
+    "url": "https://line.me/R/ti/p/@mia"
+   }
+  }
+ },
+ {
+  "name": "set_section",
+  "description": "Hide or show a section of the page: the price list, the opening hours or the floating buttons (浮かぶボタン / 浮動按鈕 / botões flutuantes / botones flotantes). Hidden sections keep their content.",
+  "params": [
+   {
+    "name": "section",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "price",
+     "hours",
+     "float",
+     "flow",
+     "faq"
+    ],
+    "hint": "price=the price list, hours=the opening hours, float=the floating buttons at the bottom right, flow=the flow charts of the booking and service steps, faq=the questions and answers"
+   },
+   {
+    "name": "visible",
+    "type": "bool",
+    "required": true,
+    "hint": "false to hide, true to show"
+   }
+  ],
+  "example": {
+   "say": "Hide the opening hours",
+   "args": {
+    "action": "set_section",
+    "section": "hours",
+    "visible": false
+   }
+  }
+ },
+ {
+  "name": "show",
+  "description": "Scroll to a part of the page and select it in the editor so the owner can look at it.",
+  "params": [
+   {
+    "name": "section",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "nav",
+     "hero",
+     "services",
+     "flow",
+     "price",
+     "faq",
+     "booking",
+     "hours",
+     "footer"
+    ]
+   }
+  ],
+  "example": {
+   "say": "Show me the prices",
+   "args": {
+    "action": "show",
+    "section": "price"
+   }
+  }
+ },
+ {
+  "name": "set_device",
+  "description": "Preview the page as desktop, tablet or phone.",
+  "params": [
+   {
+    "name": "device",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "desktop",
+     "tablet",
+     "mobile"
+    ]
+   }
+  ],
+  "example": {
+   "say": "Preview it on a phone",
+   "args": {
+    "action": "set_device",
+    "device": "mobile"
+   }
+  }
+ },
+ {
+  "name": "set_flow",
+  "description": "Draw or change a flow chart (made with Mermaid) of the booking steps or of the service process on the day (流れ図 / 流程圖 / fluxograma / diagrama de flujo). Give the steps in order, separated by semicolons.",
+  "params": [
+   {
+    "name": "which",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "booking",
+     "service"
+    ],
+    "hint": "booking=the steps to book online, service=what happens when the customer visits"
+   },
+   {
+    "name": "steps",
+    "type": "string",
+    "required": true,
+    "max": 300,
+    "hint": "2 to 7 short steps separated by semicolons, in the page language"
+   }
+  ],
+  "example": {
+   "say": "Show the booking steps as a chart: choose a menu, pick a time, enter details, get a confirmation",
+   "args": {
+    "action": "set_flow",
+    "which": "booking",
+    "steps": "Choose a menu; Pick a time; Enter your details; Get a confirmation"
+   }
+  }
+ },
+ {
+  "name": "set_theme",
+  "description": "Switch the look of the whole page: soft = warm light colors (default), tech = dark high-tech look with glowing accents (ハイテク・ダーク / 科技感・深色 / visual tecnológico escuro / aspecto tecnológico oscuro).",
+  "params": [
+   {
+    "name": "theme",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "soft",
+     "tech"
+    ],
+    "hint": "tech=dark high-tech look, soft=warm light look"
+   }
+  ],
+  "example": {
+   "say": "Make the whole site look high-tech and dark",
+   "args": {
+    "action": "set_theme",
+    "theme": "tech"
+   }
+  }
+ },
+ {
+  "name": "replace_list",
+  "description": "Replace every row of a list at once. Only the app uses it, to regenerate a part of the page.",
+  "params": [
+   {
+    "name": "list",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "services",
+     "prices",
+     "hours",
+     "faq"
+    ]
+   },
+   {
+    "name": "rows",
+    "type": "string",
+    "required": true,
+    "max": 1500,
+    "hint": "rows separated by semicolons, cells separated by |"
+   }
+  ],
+  "example": {
+   "say": "(app only)",
+   "args": {
+    "action": "replace_list",
+    "list": "faq",
+    "rows": "Question one|Answer one; Question two|Answer two"
+   }
+  }
+ },
+ {
+  "name": "set_google_form",
+  "description": "Rebuild the booking form from the questions of a public Google Form; bookings are then sent to that form. Only the app uses it.",
+  "params": [
+   {
+    "name": "config",
+    "type": "string",
+    "required": true,
+    "max": 12000,
+    "hint": "JSON: {action, pages, fields:[{entry,label,kind,options,required}]}"
+   }
+  ],
+  "example": {
+   "say": "(app only)",
+   "args": {
+    "action": "set_google_form",
+    "config": "{}"
+   }
+  }
+ },
+ {
+  "name": "clear_google_form",
+  "description": "Stop sending bookings to a Google Form. Only the app uses it.",
+  "params": [],
+  "example": {
+   "say": "(app only)",
+   "args": {
+    "action": "clear_google_form"
+   }
+  }
+ },
+ {
+  "name": "add_form_field",
+  "description": "Add one more question to the booking form, for example the number of guests, the preferred stylist, first visit or return visit, allergies, or the purpose of use (質問を追加 / 新增問題 / adicionar pergunta / añadir pregunta). Use kind select when there are fixed choices.",
+  "params": [
+   {
+    "name": "label",
+    "type": "string",
+    "required": true,
+    "max": 30
+   },
+   {
+    "name": "kind",
+    "type": "enum",
+    "required": true,
+    "values": [
+     "text",
+     "number",
+     "select",
+     "textarea"
+    ],
+    "hint": "number=a count, select=pick one of the options, text=short answer, textarea=long answer"
+   },
+   {
+    "name": "options",
+    "type": "string",
+    "required": false,
+    "max": 120,
+    "hint": "only for select: the choices separated by commas, e.g. \"First visit, Returning\""
+   },
+   {
+    "name": "required",
+    "type": "bool",
+    "required": false
+   }
+  ],
+  "example": {
+   "say": "Ask how many guests are coming",
+   "args": {
+    "action": "add_form_field",
+    "label": "Number of guests",
+    "kind": "number"
+   }
+  }
+ },
+ {
+  "name": "remove_form_field",
+  "description": "Remove a question that was added to the booking form (not a button). The basic questions (name, phone, email, service, date, time, notes) stay.",
+  "params": [
+   {
+    "name": "label",
+    "type": "string",
+    "required": true,
+    "max": 30,
+    "hint": "a word from the question"
+   }
+  ],
+  "example": {
+   "say": "Stop asking for the number of guests",
+   "args": {
+    "action": "remove_form_field",
+    "label": "guests"
+   }
+  }
+ },
+ {
+  "name": "check_quality",
+  "description": "Check the page against the accessibility and quality cheat sheet (text contrast, button size, headings, labels, landmarks) and fix what can be fixed automatically.",
+  "params": [],
+  "example": {
+   "say": "Check that the page is easy to read and accessible",
+   "args": {
+    "action": "check_quality"
+   }
+  }
+ },
+ {
+  "name": "undo",
+  "description": "Undo the last change made through chat.",
+  "params": [],
+  "example": {
+   "say": "Undo that",
+   "args": {
+    "action": "undo"
+   }
+  }
+ }
+]

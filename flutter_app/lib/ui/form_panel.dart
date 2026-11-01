@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app_state.dart';
 import '../config.dart';
 import '../i18n/i18n.dart';
+import '../llm.dart';
 import '../models.dart';
 import 'web_utils.dart';
 
@@ -137,8 +138,9 @@ class _FormPanelState extends State<FormPanel> with SingleTickerProviderStateMix
 
   Widget _next(int to, String label, {int? back}) => Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          if (back != null) ...[OutlinedButton(onPressed: () => _go(back), child: Text(tr('btn.prev'))), const SizedBox(width: 8)],
+        // Wrap：葡萄牙文等較長的文字在窄欄位會超出，自動換行而不是溢位
+        child: Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
+          if (back != null) OutlinedButton(onPressed: () => _go(back), child: Text(tr('btn.prev'))),
           FilledButton(onPressed: () => _go(to), child: Text(label)),
         ]),
       );
@@ -320,14 +322,15 @@ class _FormPanelState extends State<FormPanel> with SingleTickerProviderStateMix
       _text(tr('f.refsite'), q.refSite, (v) => q.refSite = v, hint: tr('h.refsite'), keyboard: TextInputType.url, invalidate: false),
       Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        child: Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
           OutlinedButton(onPressed: () => _go(2), child: Text(tr('btn.prev'))),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            onPressed: s.busy ? null : widget.onEstimate,
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(s.busy ? s.busyLabel : tr('btn.estimate')),
-          ),
+          // 網頁版沒有 AI：報價用內建價目表即時計算，不需要「產生 AI 評估」
+          if (aiAvailable)
+            FilledButton.icon(
+              onPressed: s.busy ? null : widget.onEstimate,
+              icon: const Icon(Icons.auto_awesome),
+              label: Text(s.busy ? s.busyLabel : tr('btn.estimate')),
+            ),
         ]),
       ),
     ]);

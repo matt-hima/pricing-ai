@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loading…</title>
+  <style>body{margin:0;font:16px/1.5 system-ui,sans-serif;color:#374151;display:flex;align-items:center;justify-content:center;min-height:100vh}</style>
+</head>
+<body>
+  <p id="msg">Loading…</p>
+  <script>
+    // 已發佈網站的檢視頁：/s/{site} 由 firebase.json rewrite 到這裡，
+    // 從 Firestore（REST）讀取 builderPublished/{site} 的完整 HTML 後取代整頁。
+    (async () => {
+      const slug = location.pathname.split("/").filter(Boolean)[1] || new URLSearchParams(location.search).get("site");
+      const msg = document.getElementById("msg");
+      if (!slug || !/^[a-z0-9-]{3,40}$/.test(slug)) return (msg.textContent = "Site not found.");
+      const url = `https://firestore.googleapis.com/v1/projects/task-exchange-f8f97/databases/(default)/documents/builderPublished/${slug}?key=AIzaSyBU1p2Bp2lzwbxGZZ9-h5w27okW0JEEgxc`;
+      try {
+        const res = await fetch(url);
+        if (res.status === 404) return (msg.textContent = "Site not found.");
+        if (!res.ok) throw new Error(res.status);
+        const doc = await res.json();
+        const html = doc.fields?.html?.stringValue;
+        if (!html) return (msg.textContent = "Site not found.");
+        document.open();
+        document.write(html);
+        document.close();
+      } catch (e) {
+        msg.textContent = "Could not load this site. Please try again later.";
+      }
+    })();
+  </script>
+</body>
+</html>

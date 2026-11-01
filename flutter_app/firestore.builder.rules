@@ -1,0 +1,30 @@
+// 網站建置器（web/builder）需要的 Firestore 規則片段。
+// 注意：task-exchange-f8f97 專案同時給其他 app 使用，不要直接以這個檔案部署（會覆蓋既有規則），
+// 請把下面的 match 區塊合併到該專案現有的 firestore.rules 的 `match /databases/{database}/documents { … }` 裡。
+
+    // 草稿：只有擁有者可讀寫
+    match /builderSites/{slug} {
+      allow read, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid
+        && slug.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$');
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // 已發佈網站：公開讀取；必須先擁有同名草稿才能發佈（避免搶別人的網址）
+    match /builderPublished/{slug} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/builderSites/$(slug)).data.ownerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      // 預約：訪客可新增（未登入），只有網站擁有者可讀取 / 刪除
+      match /bookings/{id} {
+        allow create: if request.resource.data.keys().size() <= 17
+          && request.resource.data.createdAt is timestamp;
+        allow read, delete: if request.auth != null
+          && get(/databases/$(database)/documents/builderPublished/$(slug)).data.ownerId == request.auth.uid;
+      }
+    }

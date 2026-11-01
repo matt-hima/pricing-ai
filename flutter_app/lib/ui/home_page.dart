@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../i18n/i18n.dart';
+import '../llm.dart';
 import 'brand_logo.dart';
+import 'get_app.dart';
 import 'form_panel.dart';
 import 'intro_page.dart';
 import 'lang_menu.dart';
@@ -79,8 +81,8 @@ class _HomePageState extends State<HomePage> {
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Chip(
-                    avatar: Icon(s.gpu.ok ? Icons.memory : Icons.computer, size: 16),
-                    label: Text(!s.gpuChecked ? tr('gpu.checking') : tr(s.gpu.ok ? 'gpu.ok' : 'gpu.cpu')),
+                    avatar: Icon(aiAvailable && s.gpu.ok ? Icons.memory : Icons.computer, size: 16),
+                    label: Text(!aiAvailable ? tr('web.noAi') : (!s.gpuChecked ? tr('gpu.checking') : tr(s.gpu.ok ? 'eng.gpuOk' : 'gpu.cpu'))),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -140,9 +142,10 @@ class _HomePageState extends State<HomePage> {
           Icon(Icons.info_outline, size: 16, color: Colors.amber.shade900),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(tr('banner.ai'),
+            child: Text(tr(aiAvailable ? 'banner.ai' : 'web.banner'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurface)),
           ),
+          if (!aiAvailable) TextButton(onPressed: openDesktopDownload, child: Text(tr('web.getApp'))),
         ]),
       ),
     );
