@@ -5,6 +5,8 @@ import '../app_state.dart';
 import '../config.dart';
 import '../i18n/i18n.dart';
 import '../llm.dart';
+import 'engine_storage.dart';
+import 'get_app.dart';
 import 'web_utils.dart';
 
 /// 右欄：AI 評估引擎與動作
@@ -32,12 +34,12 @@ class Sidebar extends StatelessWidget {
         );
     const gap = SizedBox(height: 8);
 
-    final engine = card(tr('side.engine'), [
+    final engineAi = card(tr('side.engine'), [
       DropdownButtonFormField<String>(
         key: ValueKey('${s.modelBase}-${s.gpu.ok}-${s.gpuChecked}'),
         initialValue: s.modelBase,
         isExpanded: true,
-        decoration: InputDecoration(labelText: tr('side.model')),
+        decoration: InputDecoration(labelText: tr(nativeEngine ? 'eng.sideModel' : 'side.model')),
         items: [for (final m in s.availableModels) DropdownMenuItem(value: m.base, child: Text(m.label, overflow: TextOverflow.ellipsis))],
         onChanged: s.busy ? null : (v) => s.setModel(v!),
       ),
@@ -46,10 +48,11 @@ class Sidebar extends StatelessWidget {
         !s.gpuChecked
             ? tr('side.checking')
             : s.gpu.ok
-                ? tr('side.cacheHint')
+                ? tr(nativeEngine ? 'eng.cacheHint' : 'side.cacheHint')
                 : tr('side.noGpu', {'reason': s.gpu.reasonText}),
         style: t.bodySmall,
       ),
+      if (nativeEngine) ...[gap, EngineStorageTile(disabled: s.busy)],
       if (s.usingCpuModel) ...[
         gap,
         Text(tr('side.cpuNote'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
@@ -84,6 +87,9 @@ class Sidebar extends StatelessWidget {
         child: Text(tr('side.rulesOnly')),
       ),
     ]);
+
+    // 網頁版沒有 AI：引擎卡片換成「下載 Mac / Windows App」的說明
+    final engine = aiAvailable ? engineAi : card(tr('side.engine'), const [GetAppCard()]);
 
     final actions = card(tr('side.actions'), [
       FilledButton.tonalIcon(

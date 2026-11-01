@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../i18n/i18n.dart';
+import '../llm.dart';
+import 'get_app.dart';
 import 'brand_logo.dart';
 import 'lang_menu.dart';
 
@@ -35,6 +37,7 @@ class _IntroPageState extends State<IntroPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _hero(context),
                 const SizedBox(height: 16),
+                if (!aiAvailable) ...[const GetAppCard(), const SizedBox(height: 16)],
                 _notice(context),
                 const SizedBox(height: 28),
                 _sectionTitle(context, tr('intro.flow.title'), tr('intro.flow.sub')),
@@ -47,8 +50,7 @@ class _IntroPageState extends State<IntroPage> {
                 const SizedBox(height: 28),
                 _terms(context),
                 const SizedBox(height: 20),
-                _env(context),
-                const SizedBox(height: 24),
+                if (aiAvailable) ...[_env(context), const SizedBox(height: 24)],
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -100,7 +102,7 @@ class _IntroPageState extends State<IntroPage> {
               padding: const EdgeInsets.only(top: 10),
               child: Wrap(spacing: 8, runSpacing: 8, children: [
                 _Pill(Icons.lock_outline, tr('intro.badge1')),
-                _Pill(Icons.memory, tr('intro.badge2')),
+                if (aiAvailable) _Pill(Icons.memory, tr('intro.badge2')),
                 _Pill(Icons.picture_as_pdf_outlined, tr('intro.badge3')),
               ]),
             ),
@@ -117,9 +119,9 @@ class _IntroPageState extends State<IntroPage> {
               child: const BrandLogo(height: 64),
             ),
             const SizedBox(height: 6),
-            Text(tr('intro.title'), style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text(tr(aiAvailable ? 'intro.title' : 'web.intro.title'), style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
-            Text(tr('intro.subtitle'), style: t.titleMedium?.copyWith(color: Colors.white.withValues(alpha: .88), height: 1.5)),
+            Text(tr(aiAvailable ? 'intro.subtitle' : 'web.intro.subtitle'), style: t.titleMedium?.copyWith(color: Colors.white.withValues(alpha: .88), height: 1.5)),
           ]),
         ),
       ]),
@@ -142,9 +144,9 @@ class _IntroPageState extends State<IntroPage> {
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(tr('intro.notice.title'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(tr(aiAvailable ? 'intro.notice.title' : 'web.intro.noticeTitle'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
-            Text(tr('intro.notice.body'), style: t.bodyMedium?.copyWith(color: cs.onSurface, height: 1.55)),
+            Text(tr(aiAvailable ? 'intro.notice.body' : 'web.intro.noticeBody'), style: t.bodyMedium?.copyWith(color: cs.onSurface, height: 1.55)),
           ]),
         ),
       ]),
@@ -170,7 +172,7 @@ class _IntroPageState extends State<IntroPage> {
   Widget _steps(BuildContext context) {
     const icons = [Icons.business, Icons.checklist, Icons.auto_awesome, Icons.picture_as_pdf];
     return _grid(context, [
-      for (var i = 0; i < 4; i++) _StepCard(index: i + 1, icon: icons[i], title: tr('intro.step${i + 1}.t'), body: tr('intro.step${i + 1}.b')),
+      for (var i = 0; i < 4; i++) _StepCard(index: i + 1, icon: icons[i], title: tr(i == 2 && !aiAvailable ? 'web.intro.step3.t' : 'intro.step${i + 1}.t'), body: tr(i == 2 && !aiAvailable ? 'web.intro.step3.b' : 'intro.step${i + 1}.b')),
     ], minWidth: 210);
   }
 

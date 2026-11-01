@@ -1,7 +1,7 @@
 {
   "hosting": {
     "site": "ai-invoicing",
-    "public": "build/web",
+    "public": "build/site",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -9,7 +9,7 @@
     ],
     "headers": [
       {
-        "source": "/fonts/**",
+        "source": "/app/fonts/**",
         "headers": [
           {
             "key": "Cache-Control",
@@ -18,7 +18,7 @@
         ]
       },
       {
-        "source": "/vendor/**",
+        "source": "/app/vendor/**",
         "headers": [
           {
             "key": "Cache-Control",
@@ -27,7 +27,7 @@
         ]
       },
       {
-        "source": "/@(index.html|flutter_bootstrap.js|flutter_service_worker.js|main.dart.js|llm_bridge.js|pdf_bridge.js|pdf_preview.js|version.json|manifest.json)",
+        "source": "/app/@(index.html|flutter_bootstrap.js|flutter_service_worker.js|main.dart.js|llm_bridge.js|pdf_bridge.js|pdf_preview.js|version.json|manifest.json)",
         "headers": [
           {
             "key": "Cache-Control",
@@ -45,13 +45,59 @@
         ]
       },
       {
-        "source": "/@(zh|ja|en|pt|es)/**",
+        "source": "/@(zh|ja|pt|es)/**",
         "headers": [
           {
             "key": "Cache-Control",
             "value": "public, max-age=3600"
           }
         ]
+      },
+      {
+        "source": "/@(site-runtime.js|builder/**|s/**)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/@(landing.css|contact.js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/s/**",
+        "destination": "/s/index.html"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/en",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/en/",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/download",
+        "destination": "/#download",
+        "type": 302
+      },
+      {
+        "source": "/download/",
+        "destination": "/#download",
+        "type": 302
       }
     ]
   }

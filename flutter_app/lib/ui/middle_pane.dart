@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import '../i18n/i18n.dart';
+import '../llm.dart' show aiAvailable;
+import '../market.dart' show marketSearchAvailable;
+import 'case_browser_dialog.dart' show caseBrowserAvailable;
+import 'case_history_dialog.dart';
+import 'market_dialog.dart';
 import '../pdf_export.dart';
 import 'pdf_surface.dart';
 import 'quote_paper.dart';
@@ -85,6 +90,24 @@ class _Header extends StatelessWidget {
         selected: {s.previewOn},
         onSelectionChanged: (v) => s.setPreviewOn(v.first),
       ),
+      if (aiAvailable && marketSearchAvailable)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.travel_explore, size: 18),
+          label: Text(tr('mkt.button')),
+          onPressed: () => showDialog<void>(context: context, builder: (_) => MarketDialog(state: s)),
+        ),
+      if (aiAvailable && caseBrowserAvailable)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.history_edu, size: 18),
+          label: Text(tr('hist.button')),
+          onPressed: () => showDialog<void>(context: context, builder: (_) => CaseHistoryDialog(state: s)),
+        ),
+      if (s.applyToSite != null)
+        FilledButton.icon(
+          icon: const Icon(Icons.send_outlined, size: 18),
+          label: Text(tr('btn.applyToSite')),
+          onPressed: s.pricing.lines.any((l) => l.subtotal > 0) ? () => s.applyToSite!(s.sitePayload) : null,
+        ),
       if (s.previewOn) ...[
         Row(mainAxisSize: MainAxisSize.min, children: [
           if (s.previewBusy)

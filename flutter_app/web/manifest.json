@@ -1,11 +1,11 @@
 {
-  "name": "Pricing AI",
-  "short_name": "Pricing AI",
+  "name": "Pricing AI Web",
+  "short_name": "Pricing AI Web",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#263C5C",
   "theme_color": "#263C5C",
-  "description": "以瀏覽器端 WebGPU LLM 評估軟體開發人月、工時與維護費，並產生 XeLaTeX 報價單。",
+  "description": "Pricing AI 網頁版（沒有 AI）：服務定價、預約網站與專案估價。要使用本機 AI 與政府標案分析，請下載 Mac / Windows App。",
   "orientation": "any",
   "prefer_related_applications": false,
   "icons": [

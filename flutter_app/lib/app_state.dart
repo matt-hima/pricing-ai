@@ -11,6 +11,8 @@ import 'i18n/i18n.dart';
 import 'pdf_export.dart';
 import 'platform.dart';
 import 'llm.dart';
+import 'market.dart';
+import 'site/market_research.dart';
 import 'models.dart';
 
 const _storeKey = 'selfquote.draft.v1';
@@ -76,6 +78,29 @@ class AppState extends ChangeNotifier {
 
   Estimate get estimate => ai?.est ?? ruleEstimate(q);
   Pricing get pricing => price(estimate, q);
+
+  /// 由外層（網站建置器功能）設定；有設定時報價單會出現「套用到網站」按鈕
+  void Function(Map<String, Object?> payload)? applyToSite;
+
+  /// 由外層設定：把一份價目表（編輯器動作清單）加到網站的服務與價格列表
+  void Function(List<Map<String, Object?>> actions, [String? lang])? applyServicesToSite;
+
+  /// 「套用到網站」要送出的內容：每個明細項目一列（名稱 + 金額），金額是未稅小計
+  Map<String, Object?> get sitePayload {
+    final p = pricing;
+    return {
+      'type': 'pricing-ai-result',
+      'currency': 'TWD',
+      'lang': I18n.lang.code,
+      'items': [
+        for (final l in p.lines)
+          if (l.group == null && l.subtotal > 0) {'name': l.name, 'sub': l.sub, 'amount': l.subtotal},
+      ],
+      'total': p.ht,
+      'vat': p.vat,
+      'ttc': p.ttc,
+    };
+  }
 
   Future<void> init() async {
     try {
@@ -261,8 +286,116 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 在同一次「忙碌」裡連續提問多次（聊天編輯的選動作 / 填實體 / 回覆）：模型只載入一次，進度條不會閃。
+  Future<T> withModel<T>(Future<T> Function(Future<String> Function(String system, String user, {Map<String, dynamic>? schema}) ask) body) async {
+    if (busy) throw StateError(tr('busy.running'));
+    if (!gpu.ok && !usingCpuModel) throw StateError(tr('msg.noAI', {'reason': gpu.reasonText}));
+    final id = modelId(modelBase, gpu.f16);
+    void prog(double p, String t) {
+      progress = p;
+      _progressText = t;
+      notifyListeners();
+    }
+
+    try {
+      busy = true;
+      busyLabel = tr('busy.loading');
+      notifyListeners();
+      await loadModel(id, prog);
+      prog(1, tr('prog.loaded', {'id': id}));
+      busyLabel = tr('busy.running');
+      final result = await body((system, user, {schema}) => askText(system, user, schema: schema, onToken: (n) => prog(1, tr('prog.tokens', {'n': '$n'}))));
+      prog(1, tr('prog.done', {'id': id}));
+      return result;
+    } catch (e) {
+      prog(0, tr('prog.error', {'e': errText(e)}));
+      rethrow;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  /// 圖片產生 / 模型下載這類長時間工作：同樣只允許一件事在忙，進度顯示在側邊與聊天視窗。
+  Future<T> withBusy<T>(String label, Future<T> Function(void Function(double, String) prog) body) async {
+    if (busy) throw StateError(tr('busy.running'));
+    void prog(double p, String t) {
+      progress = p;
+      _progressText = t;
+      notifyListeners();
+    }
+
+    try {
+      busy = true;
+      busyLabel = label;
+      notifyListeners();
+      final r = await body(prog);
+      prog(1, tr('prog.done', {'id': label}));
+      return r;
+    } catch (e) {
+      prog(0, tr('prog.error', {'e': errText(e)}));
+      rethrow;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  /// 市場行情：搜尋這種店一般的服務與價格 → 本機模型整理成價目表。查不到任何價格資料時丟出說明訊息。
+  Future<MarketResult> researchMarket(String business, String area) {
+    return withModel((ask) async {
+      final lang = I18n.lang;
+      void status(String t) {
+        progress = 0;
+        _progressText = tr('mkt.searching', {'q': t});
+        notifyListeners();
+      }
+
+      final found = await gatherMarketEvidence(marketQueries(business, area, lang.name), lang.name, status);
+      if (found.evidence.trim().isEmpty) throw StateError(tr('mkt.noEvidence'));
+      progress = 1;
+      _progressText = tr('mkt.building');
+      notifyListeners();
+      final rows = await buildPriceTable(ask: (s, u, sc) => ask(s, u, schema: sc), lang: lang, business: business, area: area, evidence: found.evidence);
+      if (rows.isEmpty) throw StateError(tr('mkt.noRows'));
+      return MarketResult(rows, found.hits);
+    });
+  }
+
+  /// 通用提問（網站內容生成等）：沿用目前選的模型與進度顯示，必要時先載入模型。
+  /// 失敗時丟出例外，訊息已翻譯。
+  Future<String> askModelText(String system, String user, {Map<String, dynamic>? schema}) async {
+    if (busy) throw StateError(tr('busy.running'));
+    if (!gpu.ok && !usingCpuModel) throw StateError(tr('msg.noAI', {'reason': gpu.reasonText}));
+    final id = modelId(modelBase, gpu.f16);
+    void prog(double p, String t) {
+      progress = p;
+      _progressText = t;
+      notifyListeners();
+    }
+
+    try {
+      busy = true;
+      busyLabel = tr('busy.loading');
+      notifyListeners();
+      await loadModel(id, prog);
+      prog(1, tr('prog.loaded', {'id': id}));
+      busyLabel = tr('busy.running');
+      final text = await askText(system, user, schema: schema, onToken: (n) => prog(1, tr('prog.tokens', {'n': '$n'})));
+      prog(1, tr('prog.done', {'id': id}));
+      return text;
+    } catch (e) {
+      prog(0, tr('prog.error', {'e': errText(e)}));
+      rethrow;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
   /// 回傳給使用者的訊息（toast）
   Future<String> runEstimate() async {
+    if (!aiAvailable) return tr('web.noAiMsg');
     if (busy) return '';
     if (q.modules.isEmpty) return tr('msg.needModule');
     if (q.company.trim().isEmpty || q.contact.trim().isEmpty) return tr('msg.needClient');
