@@ -61,13 +61,37 @@ class Bidder {
   const Bidder(this.id, this.name, this.won);
 }
 
+/// 評選委員：以最有利標決標的案件，決標公告會依法公開評選委員（姓名、職業、是否出席）
+class Reviewer {
+  final String name, job;
+  final bool attended;
+  const Reviewer(this.name, this.job, this.attended);
+}
+
 /// 決標公告的明細（只取分析用得到的欄位；機關沒公開的欄位是 null）
 class AwardDetail {
   final double? budget, floor, award;
   final int? bidders;
   final String? winner, awardWay;
   final List<Bidder> bidderList;
-  const AwardDetail({this.budget, this.floor, this.award, this.bidders, this.winner, this.awardWay, this.bidderList = const []});
+  final List<Reviewer> reviewers;
+  const AwardDetail({this.budget, this.floor, this.award, this.bidders, this.winner, this.awardWay, this.bidderList = const [], this.reviewers = const []});
+}
+
+/// 決標公告的「評選委員」表格：每列是 項次、出席會議（是/否）、姓名、職業、學經歷
+List<Reviewer> parseReviewers(String html) {
+  final i = html.indexOf('>評選委員<');
+  if (i < 0) return const [];
+  final end = html.indexOf('</table>', i); // 內層的委員表格會先結束
+  if (end < 0) return const [];
+  String cell(String c) => _text(c);
+  final out = <Reviewer>[];
+  for (final r in RegExp(r'<tr[^>]*>(.*?)</tr>', dotAll: true).allMatches(html.substring(i, end))) {
+    final tds = [for (final m in RegExp(r'<td[^>]*>(.*?)</td>', dotAll: true).allMatches(r[1]!)) cell(m[1]!)];
+    if (tds.length < 4 || !RegExp(r'^\d+$').hasMatch(tds[0]) || tds[2].isEmpty) continue;
+    out.add(Reviewer(tds[2], tds[3], tds[1] == '是'));
+  }
+  return out;
 }
 
 String _unescape(String s) => s
@@ -178,6 +202,7 @@ AwardDetail parseAwardDetail(String html) {
     winner: winner == null || winner.isEmpty ? null : winner,
     awardWay: after('決標方式'),
     bidderList: list,
+    reviewers: parseReviewers(html),
   );
 }
 
@@ -332,15 +357,17 @@ class CaseCollection {
   final Map<String, int> totals = {}; // 查詢代號 → 網站上的總筆數
   final Map<String, int> loaded = {}; // 查詢代號 → 已讀到的筆數
   final Map<String, Set<String>> foundBy = {}; // AwardCase.url → 哪些查詢找到它
+  /// 依廠商查的結果（won:/bid:）另外放：那是廠商的所有案件，不該混進關鍵字的統計
+  final Map<String, List<AwardCase>> vendorCases = {};
   CaseCollection({List<AwardCase>? cases, Map<String, AwardDetail>? details})
       : cases = cases ?? [],
         details = details ?? {};
 
-  /// 網站上符合的案件數（估計）：已收集的 + 各查詢還沒翻到的
-  int get total => cases.length + totals.entries.fold<int>(0, (n, e) => n + (e.value - (loaded[e.key] ?? 0)).clamp(0, 1 << 30));
+  /// 網站上符合的案件數（估計）：已收集的 + 各關鍵字查詢還沒翻到的
+  int get total => cases.length + totals.entries.where((e) => e.key.startsWith('kw:')).fold<int>(0, (n, e) => n + (e.value - (loaded[e.key] ?? 0)).clamp(0, 1 << 30));
 
   /// 某個查詢找到的案件
-  List<AwardCase> casesFrom(String key) => [for (final c in cases) if (foundBy[c.url]?.contains(key) ?? false) c];
+  List<AwardCase> casesFrom(String key) => key.startsWith('kw:') ? [for (final c in cases) if (foundBy[c.url]?.contains(key) ?? false) c] : (vendorCases[key] ?? const []);
 
   /// 讀到的頁面：決標清單就加入案件，決標明細就加入明細。回傳是否有新資料。
   bool addPage(String url, String html) {
@@ -357,6 +384,12 @@ class CaseCollection {
         loaded[key] = (loaded[key] ?? 0) + r.cases.length;
         totals[key] = r.total;
         changed = true;
+      }
+      if (!key.startsWith('kw:')) {
+        final list = vendorCases[key] ??= [];
+        final have = {for (final c in list) c.url};
+        list.addAll(r.cases.where((c) => have.add(c.url)));
+        return changed;
       }
       for (final c in r.cases) {
         if (seen.add(c.url)) cases.add(c);
@@ -415,3 +448,43 @@ class VendorProfile {
 
 /// Google 搜尋的 AI 模式（udm=50）；沒有開放 AI 模式的帳號 / 地區會顯示一般搜尋結果
 Uri googleAiMode(String query) => Uri.https('www.google.com', '/search', {'q': query, 'udm': '50'});
+
+/// 自動交叉分析要點開的決標公告：優先「評選」類的招標方式（會公開評選委員），其次離中位數近的；已讀過的跳過
+List<AwardCase> pickForCrossRef(CaseCollection col, int n) {
+  if (col.cases.isEmpty) return const [];
+  final median = CaseStats.of(col.cases).median;
+  final near = sampleForDetail(col.cases, median, col.cases.length).where((c) => !col.details.containsKey(c.url)).toList();
+  final evaluated = near.where((c) => c.method.contains('評選')).toList();
+  return [...evaluated, ...near.where((c) => !c.method.contains('評選'))].take(n).toList();
+}
+
+/// 要自動查紀錄的競爭對手：在點開的公告裡投標次數最多的幾家（已查過的跳過）
+List<Competitor> pickRivalsToLookUp(CaseCollection col, int n) =>
+    competitorsOf(col.details).where((c) => !col.totals.containsKey('won:${c.name}')).take(n).toList();
+
+/// 評選委員交叉分析：每位委員在點開的公告裡評選過幾件、出席幾次，以及那些案件的得標廠商
+class ReviewerRecord {
+  final String name, job;
+  final List<String> caseUrls = [];
+  int attended = 0;
+  final Map<String, int> winners = {};
+  ReviewerRecord(this.name, this.job);
+}
+
+List<ReviewerRecord> reviewerCrossRef(Map<String, AwardDetail> details) {
+  final m = <String, ReviewerRecord>{};
+  details.forEach((url, d) {
+    for (final r in d.reviewers) {
+      final rec = m[r.name] ??= ReviewerRecord(r.name, r.job);
+      if (rec.caseUrls.contains(url)) continue;
+      rec.caseUrls.add(url);
+      if (r.attended) rec.attended++;
+      final w = d.winner;
+      if (w != null) rec.winners[w] = (rec.winners[w] ?? 0) + 1;
+    }
+  });
+  return m.values.toList()..sort((a, b) => b.caseUrls.length != a.caseUrls.length ? b.caseUrls.length.compareTo(a.caseUrls.length) : a.name.compareTo(b.name));
+}
+
+/// 採購網的「驗證碼檢核」頁（防止程式大量查詢）：這時候不是決標公告。App 不會自動通過驗證，只會停下來交給使用者。
+bool isVerificationPage(String html) => html.contains('驗證碼檢核') && !html.contains('投標廠商家數');

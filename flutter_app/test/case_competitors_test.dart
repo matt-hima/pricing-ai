@@ -81,7 +81,7 @@ void main() {
   testWidgets('competitor dialog looks up won + bid records right away', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final asked = <CaseQuery>[];
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
       asked.add(q);
       final col = CaseCollection();
       for (final u in q.urls) {

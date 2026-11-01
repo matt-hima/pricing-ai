@@ -27,6 +27,8 @@ class CaseAnalysisPage extends StatefulWidget {
 
 const _prefsKey = 'selfquote.case.query';
 const _periods = [3, 6, 12, 24]; // 月
+const _autoDetails = 5; // 交叉分析自動點開的決標公告數（採購網對連續打開公告會要求驗證碼檢核，所以不多開）
+const _autoRivals = 3; // 自動查紀錄的競爭對手數
 
 enum _Sort { date, amountDesc, amountAsc }
 
@@ -102,7 +104,8 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     _refreshRelated();
     final primary = expandKeywords(k).primary;
     final more = [...primary.skip(1), ...related.where(picked.contains)];
-    final r = await widget.collect(context, CaseQuery(primary.first, cate: cate, months: months, more: more));
+    // 直接執行交叉分析：查關鍵字 → 自動點開決標公告 → 自動查前幾家競爭對手的紀錄 → 自動帶回結果
+    final r = await widget.collect(context, CaseQuery(primary.first, cate: cate, months: months, more: more), auto: true, details: _autoDetails, rivals: _autoRivals);
     if (r == null || !mounted) return;
     setState(() {
       col = r;
@@ -114,7 +117,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   /// 再打開瀏覽器點開更多案件（延續目前收集的資料）
   Future<void> _openMore() async {
     final k = keyword.text.trim();
-    final r = await widget.collect(context, CaseQuery(k.isEmpty ? '網站' : expandKeywords(k).primary.first, cate: cate, months: months), prior: col);
+    final r = await widget.collect(context, CaseQuery(k.isEmpty ? '網站' : expandKeywords(k).primary.first, cate: cate, months: months), prior: col, auto: false, details: 0, rivals: 0);
     if (r != null && mounted) setState(() => col = r);
   }
 
@@ -189,6 +192,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
                 _positionCard(context, st, mine),
                 _detailCard(context, st),
                 if (competitorsOf(details).isNotEmpty) _competitorCard(context),
+                if (details.isNotEmpty) _reviewerCard(context),
                 _listCard(context),
               ],
             ]),
@@ -411,6 +415,55 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     );
   }
 
+  /// 評選委員交叉分析：點開的公告裡（最有利標的案件才公開委員）每位委員評選過哪些案件、那些案件由誰得標
+  Widget _reviewerCard(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final recs = reviewerCrossRef(details);
+    final byUrl = {for (final c in cases) c.url: c};
+    final withCommittee = details.values.where((d) => d.reviewers.isNotEmpty).length;
+    return _card(
+      context,
+      tr('case.rev'),
+      sub: tr('case.rev.sub', {'d': '${details.length}', 'c': '$withCommittee'}),
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (recs.isEmpty) Text(tr('case.rev.none'), style: t.bodyMedium),
+        for (final r in recs.take(15))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text('${r.name} · ${r.job}', style: t.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                if (r.caseUrls.length > 1) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                    decoration: BoxDecoration(color: cs.tertiaryContainer, borderRadius: BorderRadius.circular(99)),
+                    child: Text(tr('case.rev.repeat'), style: t.labelSmall?.copyWith(color: cs.onTertiaryContainer)),
+                  ),
+                ],
+              ]),
+              Text(
+                [
+                  tr('case.rev.cases', {'n': '${r.caseUrls.length}', 'a': '${r.attended}'}),
+                  if (r.winners.isNotEmpty) tr('case.rev.winners', {'w': r.winners.entries.map((e) => e.value > 1 ? '${e.key} ×${e.value}' : e.key).join(Lang.list)}),
+                ].join('  ·  '),
+                style: t.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              for (final u in r.caseUrls.take(3))
+                if (byUrl[u] case final c?)
+                  InkWell(
+                    onTap: () => launchUrl(Uri.parse(c.url)),
+                    child: Text('· ${c.name}', style: t.labelSmall?.copyWith(color: cs.primary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+            ]),
+          ),
+        const SizedBox(height: 8),
+        Text(tr('case.rev.note'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+      ]),
+    );
+  }
+
   Widget _competitorCard(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
@@ -428,6 +481,15 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(c.name, style: t.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(tr('case.comp.counts', {'b': '${c.bids}', 'w': '${c.wins}'}), style: t.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                  // 交叉分析已自動查過這家的紀錄：直接顯示近 12 個月的得標 / 投標 / 得標率
+                  if (col.totals.containsKey('won:${c.name}'))
+                    Builder(builder: (_) {
+                      final p = VendorProfile.of(c.name, col);
+                      return Text(
+                        tr('case.comp.record', {'w': '${p.wins}', 'b': '${p.bids}', 'r': p.winRate == null ? '—' : '${p.winRate!.round()}%'}),
+                        style: t.labelSmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
+                      );
+                    }),
                 ]),
               ),
               TextButton.icon(

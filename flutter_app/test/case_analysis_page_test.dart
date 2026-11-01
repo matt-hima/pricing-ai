@@ -23,9 +23,11 @@ void main() {
     final list = File('test/fixtures/pcc_awards.html').readAsStringSync();
     final detail = File('test/fixtures/pcc_award_detail.html').readAsStringSync();
     final queries = <CaseQuery>[];
+    final autos = <(bool, int, int)>[];
     // 假的「內嵌瀏覽器」：第一次看了清單頁，之後再點開一件案件
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
       queries.add(q);
+      autos.add((auto, details, rivals));
       final col = prior ?? CaseCollection();
       col.addPage(q.url.toString(), list);
       if (prior != null) col.addPage('https://web.pcc.gov.tw/tps/atm/AtmAwardWithoutSso/QueryAtmAwardDetail?pkAtmMain=NzEzMTY5MDg=', detail);
@@ -53,6 +55,7 @@ void main() {
     expect(queries.single.url.queryParameters['tenderName'], '網站');
     // 相關查詢字預設勾選前 3 個，一起查
     expect(queries.single.keywords, ['網站', '網頁', '官網', '入口網']);
+    expect(autos.single, (true, 5, 3)); // 「分析」直接執行交叉分析：自動點開 5 件、查 3 家競爭對手
     expect(find.text(tr('case.partial', {'n': '50', 'total': '178'})), findsOneWidget);
     expect(find.text(tr('case.s.median')), findsOneWidget);
 
@@ -63,6 +66,7 @@ void main() {
     await tester.tap(find.text(tr('case.detail.run')));
     await tester.pumpAndSettle();
     expect(queries.length, 2);
+    expect(autos.last, (false, 0, 0)); // 「點開更多案件」是手動瀏覽
     expect(find.text(tr('case.detail.more')), findsOneWidget);
     expect(find.text(tr('case.comp')), findsOneWidget); // 點開的公告有投標廠商 → 潛在競爭對手
     expect(find.text(tr('case.d.winners')), findsOneWidget);

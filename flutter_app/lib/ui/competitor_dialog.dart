@@ -33,7 +33,7 @@ class _CompetitorDialogState extends State<CompetitorDialog> {
     if (running) return;
     setState(() => running = true);
     try {
-      final r = await widget.collect(context, CaseQuery.vendor(widget.name), doneLabel: tr('comp.useRecord'));
+      final r = await widget.collect(context, CaseQuery.vendor(widget.name), doneLabel: tr('comp.useRecord'), auto: true, details: 0, rivals: 0);
       if (r != null && mounted) setState(() => profile = VendorProfile.of(widget.name, r));
     } finally {
       if (mounted) setState(() => running = false);

@@ -91,38 +91,51 @@ void main() {
       await pause(500);
     }
 
-    final collected = RegExp(r'已收集 (\d+) 件決標 · (\d+) 件明細');
-    (int, int) counts() {
-      for (final e in find.byType(Text).evaluate()) {
-        final m = collected.firstMatch((e.widget as Text).data ?? '');
-        if (m != null) return (int.parse(m[1]!), int.parse(m[2]!));
-      }
-      return (0, 0);
-    }
-
     /// 在內嵌瀏覽器裡：等搜尋結果載入 → 像使用者一樣從側欄點開 [open] 件案件 → 按完成鈕
-    /// 查詢進度裡打勾的數量（每個查詢的結果頁讀到了就打勾）
-    int searchesDone() => find.descendant(of: find.byType(CaseBrowserDialog), matching: find.byIcon(Icons.check_circle)).evaluate().length;
+    var sawVerification = false, checkedContinue = false;
+    final manualVerify = Platform.environment['MANUAL_VERIFY'] == '1';
 
-    Future<void> browse({required int open, required String done, required String shotName, int searches = 1}) async {
+    /// 自動模式：瀏覽器自己依序查詢、點開公告、查競爭對手，完成後自動關閉。只等它，不點任何東西。
+    Future<void> autoRun(String shotName, {int seconds = 300}) async {
       await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isNotEmpty, 'the procurement browser to open', seconds: 20);
-      // 瀏覽器會依序查每個關鍵字，每查完一頁停 3 秒
-      await waitFor(() => searchesDone() >= searches, 'all $searches searches to load in the embedded browser', seconds: 60 + 15 * searches);
-      await pause(1500); // 像人一樣看一下結果
-      await shot('${shotName}_list');
-      for (var i = 0; i < open; i++) {
-        await waitFor(() => find.byWidgetPredicate((w) => w is InkWell && w.key is ValueKey && '${(w.key! as ValueKey).value}'.startsWith('suggest:')).evaluate().isNotEmpty, 'suggested cases');
-        final before = counts().$2;
-        final suggestion = find.byWidgetPredicate((w) => w is InkWell && w.key is ValueKey && '${(w.key! as ValueKey).value}'.startsWith('suggest:')).first;
-        await click(suggestion, 'a suggested case');
-        await waitFor(() => counts().$2 > before, 'case ${i + 1} to open and be read', seconds: 60);
-        await pause(2500); // 看完一件再點下一件
+      await pause(3000);
+      await shot('${shotName}_running');
+      final end = DateTime.now().add(Duration(seconds: seconds));
+      while (find.byType(CaseBrowserDialog).evaluate().isNotEmpty) {
+        // 採購網要求驗證：App 停下來交給使用者。測試不會（也不該）通過驗證，像使用者一樣選「略過剩下的公告」
+        if (find.text(tr('case.browser.verify.title')).evaluate().isNotEmpty) {
+          sawVerification = true;
+          // ignore: avoid_print
+          print('VERIFICATION: paused and handed to the user${manualVerify ? '' : '; the test will skip the remaining notices'}');
+          await shot('${shotName}_verification');
+          await pause(3000); // 確認真的停住，沒有繼續自動點開
+          expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should stay paused until the user acts');
+          // MANUAL_VERIFY=1：真人在旁邊。測試等使用者自己在 App 裡完成驗證（選圖片、送出、按「已完成驗證，繼續」），
+          // 然後確認 App 有接手：驗證橫幅消失、讀到公告、繼續自動流程。
+          if (manualVerify) {
+            // ignore: avoid_print
+            print('MANUAL VERIFY: waiting for the user to complete the check in the app window (up to 10 minutes)');
+            await waitFor(() => find.text(tr('case.browser.verify.title')).evaluate().isEmpty || find.byType(CaseBrowserDialog).evaluate().isEmpty, 'the user to complete the verification', seconds: 600);
+            // ignore: avoid_print
+            print('MANUAL VERIFY: verification passed; the app resumed');
+            await shot('${shotName}_resumed');
+            continue;
+          }
+          // 沒有完成驗證就按「已完成驗證，繼續」：App 應該重新確認，發現還沒通過，繼續停著並提示
+          if (!checkedContinue) {
+            checkedContinue = true;
+            await click(find.text(tr('case.browser.verify.done')), 'Done, continue (without completing the check)');
+            await waitFor(() => find.text(tr('case.browser.verify.notYet')).evaluate().isNotEmpty, 'the not-yet-passed message', seconds: 45);
+            expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should still be paused');
+            // ignore: avoid_print
+            print('CONTINUE CHECK: not passed detected, still paused');
+            await shot('${shotName}_not_yet');
+          }
+          await click(find.text(tr('case.browser.verify.skip')), 'Skip the remaining notices');
+        }
+        if (DateTime.now().isAfter(end)) fail('timed out waiting for the automatic cross-reference to finish and close');
+        await tester.pump(const Duration(milliseconds: 400));
       }
-      await shot('${shotName}_detail');
-      // ignore: avoid_print
-      print('BROWSER $shotName: collected ${counts()}');
-      await click(find.text(done), done);
-      await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isEmpty, 'the browser to close', seconds: 10);
     }
 
     // 1) 案件分析分頁：點分頁 → 打關鍵字 → 點「分析」→ 在內嵌的採購網看結果、點開兩件 → 使用這些案件
@@ -133,45 +146,60 @@ void main() {
     await waitFor(() => find.widgetWithText(FilterChip, '網頁').evaluate().isNotEmpty, 'related keyword chips');
     expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, '網頁')).selected, isTrue);
     await click(find.text(tr('case.search')), 'Analyze button');
-    await browse(open: 2, done: tr('case.browser.use'), shotName: '1_browser', searches: 4);
+    await autoRun('1_browser');
     await waitFor(() => find.text(tr('case.summary')).evaluate().isNotEmpty, 'the results on the Case analysis page');
     await shot('2_case_tab');
 
     final page = find.byType(CaseAnalysisPage);
     await wheelTo(page, find.text(tr('case.useEstimate')), 'Use project estimate button');
     await click(find.text(tr('case.useEstimate')), 'Use project estimate button');
-    await wheelTo(page, find.text(tr('case.d.winners')), 'Frequent winners section');
-    final texts = [for (final e in find.byType(Text).hitTestable().evaluate()) (e.widget as Text).data ?? ''].where((t) => t.isNotEmpty).toList();
+    // 讀到公告：沒遇到驗證，或使用者自己完成了驗證（MANUAL_VERIFY）；測試替使用者略過時就沒有公告
+    final noticesRead = !sawVerification || manualVerify;
     // ignore: avoid_print
-    print('CASES: $texts');
-    await shot('3_case_competition');
+    print('NOTICES READ: $noticesRead (verification: $sawVerification)');
+    if (noticesRead) {
+      await wheelTo(page, find.text(tr('case.d.winners')), 'Frequent winners section');
+      await wheelTo(page, find.textContaining(RegExp(r'近 12 個月得標')), 'auto-looked-up competitor record');
+      await shot('3a_competitors');
+      await wheelTo(page, find.text(tr('case.rev')), 'Reviewer cross-reference card');
+      final rev = [for (final e in find.byType(Text).hitTestable().evaluate()) (e.widget as Text).data ?? ''].where((t) => t.contains('評選') || t.contains('得標：')).toList();
+      // ignore: avoid_print
+      print('REVIEWERS: $rev');
+      await shot('3e_reviewers');
+      final texts = [for (final e in find.byType(Text).hitTestable().evaluate()) (e.widget as Text).data ?? ''].where((t) => t.isNotEmpty).toList();
+      // ignore: avoid_print
+      print('CASES: $texts');
+      await shot('3_case_competition');
+    }
 
-    // 潛在競爭對手 → 第一家的「得標紀錄」：瀏覽器依序查得標、投標 → 使用這份紀錄 → 看得標率等
-    await wheelTo(page, find.text(tr('case.comp')), 'Potential competitors card');
-    await wheelTo(page, find.text(tr('case.comp.history')), 'Award record button');
-    await click(find.text(tr('case.comp.history')), 'Award record button');
-    await browse(open: 0, done: tr('comp.useRecord'), shotName: '3b_vendor_browser', searches: 2);
-    await waitFor(() => find.text(tr('comp.rate')).evaluate().isNotEmpty, 'the competitor record');
-    final comp = [for (final e in find.descendant(of: find.byType(CompetitorDialog), matching: find.byType(Text)).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.isNotEmpty).toList();
-    // ignore: avoid_print
-    print('COMPETITOR: $comp');
-    await shot('3c_competitor');
+    if (noticesRead) {
+      // 潛在競爭對手 → 第一家的「得標紀錄」：瀏覽器依序查得標、投標 → 使用這份紀錄 → 看得標率等
+      await wheelTo(page, find.text(tr('case.comp')), 'Potential competitors card');
+      await wheelTo(page, find.text(tr('case.comp.history')), 'Award record button');
+      await click(find.text(tr('case.comp.history')), 'Award record button');
+      await autoRun('3b_vendor_browser', seconds: 90);
+      await waitFor(() => find.text(tr('comp.rate')).evaluate().isNotEmpty, 'the competitor record');
+      final comp = [for (final e in find.descendant(of: find.byType(CompetitorDialog), matching: find.byType(Text)).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.isNotEmpty).toList();
+      // ignore: avoid_print
+      print('COMPETITOR: $comp');
+      await shot('3c_competitor');
 
-    // Google AI 模式：在 App 內的瀏覽器打開，給使用者看（App 不讀取 Google 的內容）
-    await click(find.text(tr('comp.google')), 'Google AI Mode button');
-    await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isNotEmpty, 'Google AI Mode to open');
-    await pause(6000);
-    expect(find.descendant(of: find.byType(CaseBrowserDialog), matching: find.textContaining('google')), findsWidgets);
-    await shot('3d_google');
-    await click(find.descendant(of: find.byType(CaseBrowserDialog), matching: find.text(tr('mkt.close'))), 'Close Google');
-    await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isEmpty, 'Google to close', seconds: 10);
-    await click(find.descendant(of: find.byType(CompetitorDialog), matching: find.text(tr('mkt.close'))), 'Close competitor');
-    await waitFor(() => find.byType(CompetitorDialog).evaluate().isEmpty, 'the competitor dialog to close', seconds: 10);
+      // Google AI 模式：在 App 內的瀏覽器打開，給使用者看（App 不讀取 Google 的內容）
+      await click(find.text(tr('comp.google')), 'Google AI Mode button');
+      await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isNotEmpty, 'Google AI Mode to open');
+      await pause(6000);
+      expect(find.descendant(of: find.byType(CaseBrowserDialog), matching: find.textContaining('google')), findsWidgets);
+      await shot('3d_google');
+      await click(find.descendant(of: find.byType(CaseBrowserDialog), matching: find.text(tr('mkt.close'))), 'Close Google');
+      await waitFor(() => find.byType(CaseBrowserDialog).evaluate().isEmpty, 'Google to close', seconds: 10);
+      await click(find.descendant(of: find.byType(CompetitorDialog), matching: find.text(tr('mkt.close'))), 'Close competitor');
+      await waitFor(() => find.byType(CompetitorDialog).evaluate().isEmpty, 'the competitor dialog to close', seconds: 10);
+    }
 
     // 2) 專案估價：點「查歷史案件」→ 採購網自動打開 → 點開一件 → 「AI 摘要這些案件」→ 等摘要 → 關閉
     await click(find.text(tr('shell.pricing')), 'Project estimate tab');
     await click(find.text(tr('hist.button')), 'Past cases button');
-    await browse(open: 1, done: tr('hist.useAndSummarize'), shotName: '4_hist_browser', searches: 4);
+    await autoRun('4_hist_browser');
     await waitFor(() => find.text(tr('hist.summary')).evaluate().isNotEmpty || find.textContaining('AI 摘要失敗').evaluate().isNotEmpty, 'the AI summary', seconds: 300);
     expect(find.text(tr('hist.cases')), findsOneWidget);
     final popup = [for (final e in find.descendant(of: find.byType(AlertDialog), matching: find.byType(Text)).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.isNotEmpty).toList();

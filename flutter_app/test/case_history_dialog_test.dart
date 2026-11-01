@@ -20,7 +20,7 @@ void main() {
   testWidgets('opens the procurement browser right away and keeps results when the AI is unavailable', (tester) async {
     final list = File('test/fixtures/pcc_awards.html').readAsStringSync();
     final opened = <(CaseQuery, String?)>[];
-    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel}) async {
+    Future<CaseCollection?> fake(BuildContext context, CaseQuery q, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) async {
       opened.add((q, doneLabel));
       return CaseCollection()..addPage(q.url.toString(), list);
     }
