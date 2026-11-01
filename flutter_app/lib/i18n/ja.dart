@@ -828,7 +828,7 @@ const Map<String, String> jaStrings = {
   'case.browser.searches': "検索の進行",
   'case.browser.won': "落札の記録",
   'case.browser.bid': "入札の記録",
-  'case.browser.nextSoon': "3 秒後に次を検索…",
+  'case.browser.nextSoon': "{s} 秒後に次へ…",
   'case.browser.next': "次の検索へ",
   'case.related': "関連キーワード：",
   'case.related.help': "調達サイトは検索語を一続きの文字列として照合する（空白は無視）ため、「網站」では「網頁」「官網」の案件は見つかりません。チェックした語は別々に検索して結合します。",

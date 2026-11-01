@@ -828,7 +828,7 @@ const Map<String, String> ptStrings = {
   'case.browser.searches': "Pesquisas",
   'case.browser.won': "Contratos ganhos",
   'case.browser.bid': "Propostas enviadas",
-  'case.browser.nextSoon': "Próxima pesquisa em 3 segundos…",
+  'case.browser.nextSoon': "Próximo em {s} segundos…",
   'case.browser.next': "Continuar para a próxima",
   'case.related': "Termos relacionados:",
   'case.related.help': "O site compara o termo como uma frase contínua (espaços são ignorados), então 網站 não encontra casos de 網頁 ou 官網. Os termos marcados são pesquisados separadamente e combinados.",

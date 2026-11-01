@@ -828,7 +828,7 @@ const Map<String, String> esStrings = {
   'case.browser.searches': "Búsquedas",
   'case.browser.won': "Contratos ganados",
   'case.browser.bid': "Ofertas presentadas",
-  'case.browser.nextSoon': "Siguiente búsqueda en 3 segundos…",
+  'case.browser.nextSoon': "Siguiente en {s} segundos…",
   'case.browser.next': "Continuar con la siguiente",
   'case.related': "Términos relacionados:",
   'case.related.help': "El sitio compara el término como una frase continua (se ignoran los espacios), así que 網站 no encuentra casos de 網頁 u 官網. Los términos marcados se buscan por separado y se combinan.",

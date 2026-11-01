@@ -828,7 +828,7 @@ const Map<String, String> enStrings = {
   'case.browser.searches': "Searches",
   'case.browser.won': "Awards won",
   'case.browser.bid': "Bids placed",
-  'case.browser.nextSoon': "Next search in 3 seconds…",
+  'case.browser.nextSoon': "Next in {s} seconds…",
   'case.browser.next': "Continue to the next search",
   'case.related': "Related search terms:",
   'case.related.help': "The procurement site matches the search text as one continuous phrase (spaces are ignored), so 網站 does not find 網頁 or 官網 cases. Checked terms are searched separately and merged.",

@@ -411,7 +411,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
               if (col.totals[searchKey(queue[i])] case final n?) Text(tr('case.nCases', {'n': '$n'}), style: t.labelSmall),
             ]),
           ),
-        if (waiting) Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('case.browser.nextSoon'), style: t.labelSmall?.copyWith(color: cs.onSurfaceVariant))),
+        if (waiting) Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('case.browser.nextSoon', {'s': '${(stage == _Stage.details ? _nextNoticeDelay : _nextSearchDelay).inSeconds}'}), style: t.labelSmall?.copyWith(color: cs.onSurfaceVariant))),
         if (!waiting && !verifyPending && next < queue.length)
           Align(
             alignment: Alignment.centerLeft,

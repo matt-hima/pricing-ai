@@ -93,6 +93,7 @@ void main() {
 
     /// 在內嵌瀏覽器裡：等搜尋結果載入 → 像使用者一樣從側欄點開 [open] 件案件 → 按完成鈕
     var sawVerification = false, checkedContinue = false;
+    final manualVerify = Platform.environment['MANUAL_VERIFY'] == '1';
 
     /// 自動模式：瀏覽器自己依序查詢、點開公告、查競爭對手，完成後自動關閉。只等它，不點任何東西。
     Future<void> autoRun(String shotName, {int seconds = 300}) async {
@@ -105,10 +106,21 @@ void main() {
         if (find.text(tr('case.browser.verify.title')).evaluate().isNotEmpty) {
           sawVerification = true;
           // ignore: avoid_print
-          print('VERIFICATION: paused and handed to the user; skipping the remaining notices');
+          print('VERIFICATION: paused and handed to the user${manualVerify ? '' : '; the test will skip the remaining notices'}');
           await shot('${shotName}_verification');
           await pause(3000); // 確認真的停住，沒有繼續自動點開
           expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should stay paused until the user acts');
+          // MANUAL_VERIFY=1：真人在旁邊。測試等使用者自己在 App 裡完成驗證（選圖片、送出、按「已完成驗證，繼續」），
+          // 然後確認 App 有接手：驗證橫幅消失、讀到公告、繼續自動流程。
+          if (manualVerify) {
+            // ignore: avoid_print
+            print('MANUAL VERIFY: waiting for the user to complete the check in the app window (up to 10 minutes)');
+            await waitFor(() => find.text(tr('case.browser.verify.title')).evaluate().isEmpty || find.byType(CaseBrowserDialog).evaluate().isEmpty, 'the user to complete the verification', seconds: 600);
+            // ignore: avoid_print
+            print('MANUAL VERIFY: verification passed; the app resumed');
+            await shot('${shotName}_resumed');
+            continue;
+          }
           // 沒有完成驗證就按「已完成驗證，繼續」：App 應該重新確認，發現還沒通過，繼續停著並提示
           if (!checkedContinue) {
             checkedContinue = true;
@@ -141,7 +153,8 @@ void main() {
     final page = find.byType(CaseAnalysisPage);
     await wheelTo(page, find.text(tr('case.useEstimate')), 'Use project estimate button');
     await click(find.text(tr('case.useEstimate')), 'Use project estimate button');
-    final noticesRead = find.text(tr('case.d.winners')).evaluate().isNotEmpty || find.text(tr('case.comp')).evaluate().isNotEmpty || !sawVerification;
+    // 讀到公告：沒遇到驗證，或使用者自己完成了驗證（MANUAL_VERIFY）；測試替使用者略過時就沒有公告
+    final noticesRead = !sawVerification || manualVerify;
     // ignore: avoid_print
     print('NOTICES READ: $noticesRead (verification: $sawVerification)');
     if (noticesRead) {

@@ -829,7 +829,7 @@ const Map<String, String> zhStrings = {
   'case.browser.searches': "查詢進度",
   'case.browser.won': "得標紀錄",
   'case.browser.bid': "投標紀錄",
-  'case.browser.nextSoon': "3 秒後查下一個…",
+  'case.browser.nextSoon': "{s} 秒後查下一個…",
   'case.browser.next': "繼續下一個查詢",
   'case.related': "相關查詢字：",
   'case.related.help': "採購網把查詢字當成一整串連續文字比對（空白會被忽略），所以「網站」找不到「網頁」「官網」的案子。勾選的字會分開查詢再合併。",
