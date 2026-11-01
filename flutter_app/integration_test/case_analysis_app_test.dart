@@ -145,9 +145,17 @@ void main() {
     // 相關查詢字出現（採購網是連續文字比對）：預設勾選 網頁、官網、入口網
     await waitFor(() => find.widgetWithText(FilterChip, '網頁').evaluate().isNotEmpty, 'related keyword chips');
     expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, '網頁')).selected, isTrue);
+    // 官方開放資料：下載近 12 個月的決標資料檔並分析（一般檔案下載，不會遇到驗證碼）
+    await click(find.text(tr('case.data.run', {'m': '12'})), 'Official dataset button');
+    await waitFor(() => find.textContaining(RegExp(r'已載入 \d+ 筆決標')).evaluate().isNotEmpty, 'the official dataset to download and load', seconds: 300);
+    final data = [for (final e in find.byType(Text).evaluate()) (e.widget as Text).data ?? ''].where((t) => t.contains('已載入') || t.contains('得標') && t.contains('共') || t.startsWith('NT\$')).take(14).toList();
+    // ignore: avoid_print
+    print('OPEN DATA: $data');
+    await shot('0_open_data');
     await click(find.text(tr('case.search')), 'Analyze button');
     await autoRun('1_browser');
-    await waitFor(() => find.text(tr('case.summary')).evaluate().isNotEmpty, 'the results on the Case analysis page');
+    // 結果在官方開放資料卡片下面（清單是 lazy 的，畫面外還沒建出來）：用滾輪捲到概況
+    await wheelTo(find.byType(CaseAnalysisPage), find.text(tr('case.summary')), 'the results on the Case analysis page');
     await shot('2_case_tab');
 
     final page = find.byType(CaseAnalysisPage);

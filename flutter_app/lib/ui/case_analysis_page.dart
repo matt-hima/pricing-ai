@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../app_state.dart';
 import '../case_analysis/keywords.dart';
+import '../case_analysis/opendata.dart';
+import '../case_analysis/opendata_store.dart';
 import '../case_analysis/pcc.dart';
 import '../i18n/i18n.dart';
 import '../llm.dart' show downloadText;
@@ -19,7 +21,10 @@ class CaseAnalysisPage extends StatefulWidget {
 
   /// 開啟內嵌的採購網收集案件；測試時換成直接回傳固定資料
   final CaseCollect collect;
-  const CaseAnalysisPage({super.key, required this.state, this.collect = openCaseBrowser});
+
+  /// 下載並讀取官方開放資料；測試時換成讀固定資料
+  final Future<List<DatasetAward>> Function(List<String> files, {void Function(int done, int total)? onProgress}) loadData;
+  const CaseAnalysisPage({super.key, required this.state, this.collect = openCaseBrowser, this.loadData = loadDataset});
 
   @override
   State<CaseAnalysisPage> createState() => _CaseAnalysisPageState();
@@ -41,6 +46,11 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   bool showAll = false;
 
   CaseCollection col = CaseCollection();
+
+  /// 官方開放資料（決標 NT\$100 萬以上）：下載的全部決標；篩選依目前的關鍵字、相關查詢字、採購性質與期間
+  List<DatasetAward>? dataset;
+  int dataMonths = 0, dataDone = 0, dataTotal = 0;
+  bool dataLoading = false;
   bool searched = false;
 
   /// 相關查詢字（採購網是連續文字比對，「網站」找不到「網頁」的案子）：預設勾選前 3 個
@@ -186,6 +196,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
               Text(tr('case.intro'), style: t.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
               const SizedBox(height: 16),
               _queryCard(context),
+              if (datasetAvailable) _datasetCard(context),
               if (searched && cases.isEmpty) _card(context, tr('case.noResults'), Text(tr('case.noResultsHint'), style: t.bodyMedium)),
               if (st != null) ...[
                 _summaryCard(context, st),
@@ -272,6 +283,120 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             ]),
           ),
         Text(tr('case.source'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+      ]),
+    );
+  }
+
+  /// 下載期間內的官方決標資料檔（已下載過的直接讀本機）
+  Future<void> _loadDataset() async {
+    if (dataLoading) return;
+    final files = datasetFiles(DateTime.now(), months);
+    setState(() {
+      dataLoading = true;
+      dataDone = 0;
+      dataTotal = files.length;
+    });
+    try {
+      final all = await widget.loadData(files, onProgress: (d, n) {
+        if (mounted) {
+          setState(() {
+            dataDone = d;
+            dataTotal = n;
+          });
+        }
+      });
+      if (mounted) {
+        setState(() {
+          dataset = all;
+          dataMonths = months;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => dataLoading = false);
+    }
+  }
+
+  List<String> _keywordsNow() {
+    final primary = expandKeywords(keyword.text.trim()).primary;
+    return [...primary, ...related.where(picked.contains)];
+  }
+
+  Widget _datasetCard(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final ks = _keywordsNow();
+    final now = DateTime.now();
+    final hits = dataset == null || ks.isEmpty ? const <DatasetAward>[] : filterDataset(dataset!, keywords: ks, cate: cate, from: DateTime(now.year, now.month - months, now.day));
+    final st = hits.isEmpty ? null : CaseStats.of([for (final a in hits) a.toCase()]);
+    final vendors = datasetVendors(hits).take(8).toList();
+    final ways = awardWays(hits);
+    final recent = [...hits]..sort((a, b) => (b.noticeDate ?? DateTime(0)).compareTo(a.noticeDate ?? DateTime(0)));
+    return _card(
+      context,
+      tr('case.data'),
+      sub: tr('case.data.sub'),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          FilledButton.tonalIcon(
+            onPressed: dataLoading || ks.isEmpty ? null : _loadDataset,
+            icon: const Icon(Icons.dataset_outlined, size: 18),
+            label: Text(dataset == null || dataMonths != months ? tr('case.data.run', {'m': '$months'}) : tr('case.data.rerun')),
+          ),
+          if (dataset != null && !dataLoading) Text(tr('case.data.loaded', {'n': '${dataset!.length}', 'm': '$dataMonths'}), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        ]),
+        if (dataLoading) ...[
+          const SizedBox(height: 10),
+          LinearProgressIndicator(value: dataTotal == 0 ? null : dataDone / dataTotal),
+          Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('case.data.progress', {'i': '$dataDone', 'n': '$dataTotal'}), style: t.labelSmall)),
+        ],
+        if (dataset != null && !dataLoading && hits.isEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr('case.data.none'), style: t.bodyMedium)),
+        if (st != null) ...[
+          const SizedBox(height: 14),
+          Wrap(spacing: 12, runSpacing: 12, children: [
+            _Stat(tr('case.s.count'), '${st.count}'),
+            _Stat(tr('case.s.median'), _money(st.median)),
+            _Stat(tr('case.s.iqr'), '${_short(st.p25)} – ${_short(st.p75)}'),
+            _Stat(tr('case.s.mean'), _money(st.mean)),
+          ]),
+          const SizedBox(height: 16),
+          Wrap(spacing: 32, runSpacing: 12, children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(tr('case.data.winners'), style: t.titleSmall),
+                const SizedBox(height: 6),
+                for (final v in vendors)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      '${v.name}  ·  ${tr('case.data.vendor', {'w': '${v.wins}', 't': _short(v.total)})}${v.losses > 0 ? '  ·  ${tr('case.data.lost', {'l': '${v.losses}'})}' : ''}',
+                      style: t.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ]),
+            ),
+            _rank(context, tr('case.topAgencies'), st.topAgencies),
+            _rank(context, tr('case.data.ways'), ways.entries.take(4).toList()),
+          ]),
+          const SizedBox(height: 14),
+          Text(tr('case.data.recent'), style: t.titleSmall),
+          for (final a in recent.take(8))
+            InkWell(
+              onTap: () => launchUrl(Uri.parse(a.toCase().url)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(children: [
+                  Expanded(child: Text('${a.name}  ·  ${a.agency}${a.winner.isEmpty ? '' : '  ·  ${a.winner}'}', style: t.bodySmall?.copyWith(color: cs.primary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 8),
+                  Text(_money(a.amount), style: t.bodySmall),
+                ]),
+              ),
+            ),
+        ],
+        const SizedBox(height: 10),
+        Text(tr('case.data.source'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
       ]),
     );
   }

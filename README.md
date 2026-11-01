@@ -50,6 +50,7 @@ Desktop app. The real Government e-Procurement System (web.pcc.gov.tw) opens in 
 - Potential competitors: every bidder in the notices you opened; look up any company's awards and bids for the last 12 months (wins, bids, win rate, typical award, agencies).
 - Google AI Mode opens in the in-app browser for public information about a company or a market, for you to read.
 - Export the cases as CSV.
+- Official open data: download the Government e-Procurement System's award dataset (awards of TWD 1M or more, about 2 months behind) and analyze years at once with no verification checks: award amounts, frequent winners, agencies and award methods. Source: Public Construction Commission, Executive Yuan, open data under the Open Government Data License v1.0.
 
 ## Desktop app or browser?
 

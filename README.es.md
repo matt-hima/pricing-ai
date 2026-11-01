@@ -50,6 +50,7 @@ Función de la app de escritorio. El Sistema de Compras Electrónicas del gobier
 - Posibles competidores: todos los licitadores de los avisos abiertos; consulta el historial de cualquier empresa en los últimos 12 meses (victorias, ofertas, tasa de éxito, importe típico, organismos).
 - Google Modo IA se abre en el navegador de la app para información pública sobre una empresa o un mercado, para que la leas.
 - Exporta los casos en CSV.
+- Datos abiertos oficiales: descarga el conjunto de adjudicaciones del Sistema de Compras (contratos de TWD 1M o más, con unos 2 meses de retraso) y analiza varios años a la vez, sin verificaciones: importes, ganadores frecuentes, organismos y formas de adjudicación. Fuente: Comisión de Obras Públicas del Yuan Ejecutivo, datos abiertos bajo la Open Government Data License v1.0.
 
 ## ¿App de escritorio o navegador?
 
