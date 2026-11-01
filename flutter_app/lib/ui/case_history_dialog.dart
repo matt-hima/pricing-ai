@@ -5,10 +5,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
 import '../case_analysis/case_summary.dart';
 import '../case_analysis/keywords.dart';
+import '../case_analysis/case_report.dart';
+import '../case_analysis/case_store.dart';
+import '../case_analysis/case_store_open.dart';
 import '../case_analysis/pcc.dart';
 import '../i18n/i18n.dart';
+import '../pdf_export.dart' show renderPdfDoc;
 import '../service_pricing/service_plan.dart' show formatMoney;
 import 'case_browser_dialog.dart';
+import 'save_file.dart';
 
 /// 專案類型 → 採購網常見的標案名稱關鍵字
 const _typeKeywords = {'corporate': '網站', 'ecommerce': '電子商務', 'app': 'APP', 'saas': '平台', 'erp': '系統'};
@@ -19,7 +24,8 @@ class CaseHistoryDialog extends StatefulWidget {
 
   /// 開啟內嵌的採購網收集案件；測試時換成直接回傳固定資料
   final CaseCollect collect;
-  const CaseHistoryDialog({super.key, required this.state, this.collect = openCaseBrowser});
+  final OpenCaseStore openStore;
+  const CaseHistoryDialog({super.key, required this.state, this.collect = openCaseBrowser, this.openStore = openCaseStore});
 
   @override
   State<CaseHistoryDialog> createState() => _CaseHistoryDialogState();
@@ -38,6 +44,7 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
   Map<String, AwardDetail> details = {};
   CaseSummary? summary;
   double? myPrice;
+  bool exporting = false;
 
   AppState get s => widget.state;
 
@@ -72,7 +79,8 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
     });
     try {
       final kw = expandKeywords(k);
-      final r = await widget.collect(context, CaseQuery(kw.primary.first, cate: cate, months: months, more: [...kw.primary.skip(1), ...kw.suggestions.take(3)]), doneLabel: tr('hist.useAndSummarize'), auto: true, details: 3, rivals: 0);
+      final r = await widget.collect(context, CaseQuery(kw.primary.first, cate: cate, months: months, more: [...kw.primary.skip(1), ...kw.suggestions.take(3)]), doneLabel: tr('hist.useAndSummarize'), auto: true, details: 3, rivals: 0, known: (urls) => knownDetailsIn(widget.openStore, urls));
+      if (r != null) saveCasesTo(widget.openStore, r); // 存進資料庫，之後沿用
       if (!_alive || r == null) return;
       if (r.cases.isEmpty) throw StateError(tr('case.noResultsHint'));
       setState(() {
@@ -92,9 +100,50 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
     }
   }
 
-  String _summaryText() {
-    final x = summary!;
-    return [x.overview, x.price, x.competition, for (final a in x.advice) '• $a'].where((l) => l.isNotEmpty).join('\n');
+  /// 摘要內容（分享文字與 PDF 共用）：AI 摘要失敗或還沒寫好時，也有程式依統計寫的價格與競爭
+  CaseReport _report() {
+    final x = summary;
+    final st = CaseStats.of(cases);
+    final price = x?.price.isNotEmpty == true ? x!.price : priceFacts(cases, total);
+    final competition = x?.competition.isNotEmpty == true ? x!.competition : competitionFacts(details);
+    String money(double v) => formatMoney(v, 'TWD');
+    String date(DateTime? d) => d == null ? '' : '${d.year}/${d.month}/${d.day}';
+    return CaseReport(
+      title: tr('report.title', {'k': keyword.text.trim()}),
+      subtitle: tr('report.subtitle', {'d': fileDate(), 'k': keyword.text.trim(), 'c': tr('case.cate.${cate.name}'), 'm': tr('case.months', {'n': '$months'})}),
+      sections: [
+        if (x != null && x.overview.isNotEmpty) ReportSection(tr('hist.overview'), lines: [x.overview]),
+        ReportSection(tr('hist.price'), lines: [
+          price,
+          if (myPrice != null) tr('case.pos.pct', {'price': money(myPrice!), 'pct': '${CaseStats.percentile(cases, myPrice!).round()}'}),
+        ]),
+        ReportSection(tr('hist.competition'), lines: [competition]),
+        if (x != null && x.advice.isNotEmpty) ReportSection(tr('hist.advice'), bullets: x.advice),
+        ReportSection(tr('hist.cases'), table: [
+          [tr('case.col.name'), tr('case.col.agency'), tr('case.col.bidders'), tr('case.col.date'), tr('case.col.amount')],
+          for (final c in representativeCases(cases, details, st.median, 10)) [c.name, c.agency, '${details[c.url]?.bidders ?? ''}', date(c.date), money(c.amount)],
+        ]),
+      ],
+      note: x != null ? tr('hist.note') : tr('case.disclaimer'),
+      sources: [tr('report.source.pcc')],
+    );
+  }
+
+  String _summaryText() => _report().toText();
+
+  Future<void> _exportPdf() async {
+    if (exporting) return;
+    final m = ScaffoldMessenger.of(context);
+    setState(() => exporting = true);
+    try {
+      final pdf = await renderPdfDoc(_report().toPdfDoc());
+      final at = await saveBytes(pdf, 'past-cases-${fileDate()}.pdf', 'application/pdf');
+      if (at != null) m.showSnackBar(SnackBar(content: Text(tr('case.pdf.saved', {'p': at}))));
+    } catch (e) {
+      m.showSnackBar(SnackBar(content: Text(tr('case.pdf.failed', {'e': errText(e)}))));
+    } finally {
+      if (_alive) setState(() => exporting = false);
+    }
   }
 
   @override
@@ -171,6 +220,22 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(tr('case.pos.pct', {'price': money(myPrice!), 'pct': '${CaseStats.percentile(cases, myPrice!).round()}'}), style: t.bodyMedium),
                   ),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: _summaryText()));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('hist.copied'))));
+                    },
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: Text(tr('hist.copy')),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: exporting || running ? null : _exportPdf,
+                    icon: exporting ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                    label: Text(exporting ? tr('case.pdf.making') : tr('hist.pdf')),
+                  ),
+                ]),
               ],
               if (summary != null) ...[
                 const SizedBox(height: 16),
@@ -183,15 +248,6 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
                       Icon(Icons.auto_awesome, size: 16, color: cs.primary),
                       const SizedBox(width: 6),
                       Expanded(child: Text(tr('hist.summary'), style: t.titleSmall)),
-                      IconButton(
-                        tooltip: tr('hist.copy'),
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.copy, size: 16),
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: _summaryText()));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('hist.copied'))));
-                        },
-                      ),
                     ]),
                     for (final (label, text) in [(tr('hist.overview'), summary!.overview), (tr('hist.price'), summary!.price), (tr('hist.competition'), summary!.competition)])
                       if (text.isNotEmpty)

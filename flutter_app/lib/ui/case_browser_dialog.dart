@@ -47,13 +47,15 @@ class CaseQuery {
 
 /// 開啟採購網、收集案件；使用者關掉視窗時回傳 null。測試時換成直接回傳固定資料。
 /// [auto]：全部查完就自動關閉並帶回結果；[details] / [rivals]：查完關鍵字後自動點開幾件決標公告、自動查幾家競爭對手的紀錄（交叉分析）。
-typedef CaseCollect = Future<CaseCollection?> Function(BuildContext context, CaseQuery query, {CaseCollection? prior, String? doneLabel, bool auto, int details, int rivals});
+/// [known]：資料庫裡已經有明細的公告（自動交叉分析就跳過，不再打開）。
+typedef KnownDetails = Future<Map<String, AwardDetail>> Function(Iterable<String> urls);
+typedef CaseCollect = Future<CaseCollection?> Function(BuildContext context, CaseQuery query, {CaseCollection? prior, String? doneLabel, bool auto, int details, int rivals, KnownDetails? known});
 
-Future<CaseCollection?> openCaseBrowser(BuildContext context, CaseQuery query, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0}) =>
+Future<CaseCollection?> openCaseBrowser(BuildContext context, CaseQuery query, {CaseCollection? prior, String? doneLabel, bool auto = false, int details = 0, int rivals = 0, KnownDetails? known}) =>
     showDialog<CaseCollection>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => CaseBrowserDialog(query: query, prior: prior, doneLabel: doneLabel, auto: auto, autoDetails: details, autoRivals: rivals),
+      builder: (_) => CaseBrowserDialog(query: query, prior: prior, doneLabel: doneLabel, auto: auto, autoDetails: details, autoRivals: rivals, known: known),
     );
 
 /// 在 App 內的瀏覽器打開 Google 搜尋的 AI 模式給使用者自己看（App 不讀取 Google 的內容）
@@ -70,7 +72,8 @@ class CaseBrowserDialog extends StatefulWidget {
   final String? doneLabel;
   final bool auto;
   final int autoDetails, autoRivals;
-  const CaseBrowserDialog({super.key, this.query, this.startUrl, this.prior, this.doneLabel, this.auto = false, this.autoDetails = 0, this.autoRivals = 0});
+  final KnownDetails? known;
+  const CaseBrowserDialog({super.key, this.query, this.startUrl, this.prior, this.doneLabel, this.auto = false, this.autoDetails = 0, this.autoRivals = 0, this.known});
 
   @override
   State<CaseBrowserDialog> createState() => _CaseBrowserDialogState();
@@ -147,7 +150,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     // 這一頁是佇列裡剛打開的那個：停一下再自動打開下一個（使用者這段時間自己換頁就不動）
     final i = next - 1;
     if (i < 0 || i >= queue.length || !_same(url.toString(), queue[i])) return;
-    if (next >= queue.length && !_plan()) return _finish();
+    if (next >= queue.length && !await _plan()) return _finish();
     final loadsNow = _loads;
     setState(() => waiting = true);
     // 決標公告之間停久一點：採購網對連續打開公告比較敏感
@@ -169,14 +172,14 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   }
 
   /// 使用者不想再做驗證：略過剩下的公告，接著做後面的步驟（查廠商紀錄）或完成
-  void _skipRemaining() {
+  Future<void> _skipRemaining() async {
     setState(() {
       verifyPending = false;
       skippedNotices = true;
     });
     _skipNotices();
     if (next < queue.length) return _runNext();
-    if (_plan()) return _runNext();
+    if (await _plan()) return _runNext();
     _finish();
   }
 
@@ -190,12 +193,21 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   }
 
   /// 目前階段做完了：排下一個階段要打開的頁面。有排到東西就回傳 true。
-  bool _plan() {
+  Future<bool> _plan() async {
     while (stage != _Stage.done) {
       final before = queue.length;
       switch (stage) {
         case _Stage.searches:
           stage = _Stage.details;
+          // 資料庫裡已經有明細的公告直接用，不再打開（也就少遇到驗證碼檢核）
+          if (widget.known != null && col.cases.isNotEmpty) {
+            final have = await widget.known!(col.cases.map((c) => c.url));
+            if (have.isNotEmpty) {
+              debugPrint('case browser: ${have.length} notices already in the database; not opening them again');
+              col.details.addAll(have);
+              if (mounted) setState(() {});
+            }
+          }
           if (!skippedNotices) queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
         case _Stage.details:
           stage = _Stage.rivals;

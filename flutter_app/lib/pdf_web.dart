@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:js_interop';
+import 'dart:typed_data';
 
 import 'app_state.dart';
 import 'i18n/i18n.dart';
@@ -14,6 +15,7 @@ extension type _Pdf._(JSObject _) implements JSObject {
   external JSPromise<JSString> download(String docJson, String cjkSet, String filename, JSFunction onStatus);
   external JSPromise<JSString> preview(String docJson, String cjkSet, JSFunction onStatus);
   external bool downloadLast(String filename);
+  external JSPromise<JSUint8Array> render(String docJson, String cjkSet, JSFunction? onStatus);
 }
 
 String _docJson(AppState s) => jsonEncode(buildQuotePdf(s));
@@ -41,3 +43,14 @@ bool downloadLastPdf(String filename) => _pdf?.downloadLast(filename) ?? false;
 
 /// 判斷內容是否改變用的指紋（文件內容 + 語言）
 String previewKey(AppState s) => '${I18n.lang.code}|${_docJson(s)}';
+
+/// 用 pdfmake 把文件描述排成 PDF（網頁裡已經有 pdf_bridge.js）
+Future<Uint8List> renderPdfDoc(Map<String, dynamic> doc) async {
+  final b = _pdf;
+  if (b == null) throw StateError(tr('js.pdf_nobridge'));
+  try {
+    return (await b.render(jsonEncode(doc), I18n.lang.fontSet, null).toDart).toDart;
+  } catch (e) {
+    throw StateError(tx('@pdf_failed'));
+  }
+}
