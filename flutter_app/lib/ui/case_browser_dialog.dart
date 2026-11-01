@@ -90,8 +90,11 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   bool waiting = false;
   _Stage stage = _Stage.searches;
   final Map<_Stage, (int, int)> _span = {}; // 每個階段在 queue 裡的範圍（開始, 結束）
-  /// 採購網要求「驗證碼檢核」：停止自動點開公告（尊重網站防止大量查詢的檢查），交給使用者
-  bool verification = false;
+  /// 採購網出現「驗證碼檢核」：自動流程暫停，交給使用者自己完成驗證（App 不辨識、不點選驗證圖片）
+  bool verifyPending = false;
+
+  /// 使用者選擇略過剩下的公告：不再自動點開公告，其他步驟照常
+  bool skippedNotices = false;
 
   bool get collecting => widget.query != null;
 
@@ -113,9 +116,14 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     try {
       final html = await c.getHtml();
       if (html != null && isVerificationPage(html)) {
-        debugPrint('case browser: the site asked for verification; automatic opening of notices stopped');
-        if (mounted) setState(() => verification = true);
-        _skipNotices();
+        // 暫停：停在驗證頁等使用者自己完成，完成後網站會轉到公告，下面讀到公告就自動繼續
+        debugPrint('case browser: the site asked for verification; paused for the user');
+        if (mounted) setState(() => verifyPending = true);
+        return;
+      }
+      if (verifyPending && html != null && url.path.contains('QueryAtmAwardDetail')) {
+        debugPrint('case browser: verification completed by the user; continuing');
+        if (mounted) setState(() => verifyPending = false);
       }
       final added = html != null && col.addPage(url.toString(), html);
       debugPrint('case browser: read ${url.path.split('/').last} ${added ? 'ok' : 'nothing new'} (${html?.length ?? 0} chars) · cases ${col.cases.length}, notices ${col.details.length}');
@@ -136,6 +144,18 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     if (_loads == loadsNow) _runNext();
   }
 
+  /// 使用者不想再做驗證：略過剩下的公告，接著做後面的步驟（查廠商紀錄）或完成
+  void _skipRemaining() {
+    setState(() {
+      verifyPending = false;
+      skippedNotices = true;
+    });
+    _skipNotices();
+    if (next < queue.length) return _runNext();
+    if (_plan()) return _runNext();
+    _finish();
+  }
+
   /// 網站要求驗證：佇列裡還沒打開的決標公告全部拿掉（查廠商紀錄的清單頁不受影響，繼續）
   void _skipNotices() {
     for (var i = queue.length - 1; i >= next; i--) {
@@ -152,7 +172,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
       switch (stage) {
         case _Stage.searches:
           stage = _Stage.details;
-          if (!verification) queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
+          if (!skippedNotices) queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
         case _Stage.details:
           stage = _Stage.rivals;
           for (final r in pickRivalsToLookUp(col, widget.autoRivals)) {
@@ -302,14 +322,32 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
       width: 290,
       decoration: BoxDecoration(border: Border(left: BorderSide(color: cs.outlineVariant))),
       child: ListView(padding: const EdgeInsets.all(14), children: [
-        if (verification) ...[
+        if (verifyPending) ...[
+          // 交給使用者：請他在左邊自己完成驗證；完成後自動繼續。也可以略過剩下的公告。
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: cs.tertiaryContainer, borderRadius: BorderRadius.circular(10), border: Border.all(color: cs.tertiary, width: 2)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(Icons.front_hand_outlined, size: 18, color: cs.onTertiaryContainer),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tr('case.browser.verify.title'), style: t.titleSmall?.copyWith(color: cs.onTertiaryContainer))),
+              ]),
+              const SizedBox(height: 6),
+              Text(tr('case.browser.verify.body'), style: t.bodySmall?.copyWith(color: cs.onTertiaryContainer)),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(onPressed: _skipRemaining, icon: const Icon(Icons.skip_next, size: 16), label: Text(tr('case.browser.verify.skip'))),
+            ]),
+          ),
+          const SizedBox(height: 12),
+        ] else if (skippedNotices) ...[
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.verified_user_outlined, size: 18, color: cs.onErrorContainer),
+              Icon(Icons.info_outline, size: 18, color: cs.onSurfaceVariant),
               const SizedBox(width: 8),
-              Expanded(child: Text(tr('case.browser.verification'), style: t.bodySmall?.copyWith(color: cs.onErrorContainer))),
+              Expanded(child: Text(tr('case.browser.verification'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
             ]),
           ),
           const SizedBox(height: 12),
@@ -339,7 +377,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
             ]),
           ),
         if (waiting) Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('case.browser.nextSoon'), style: t.labelSmall?.copyWith(color: cs.onSurfaceVariant))),
-        if (!waiting && next < queue.length)
+        if (!waiting && !verifyPending && next < queue.length)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(onPressed: _runNext, icon: const Icon(Icons.skip_next, size: 16), label: Text(tr('case.browser.next'))),

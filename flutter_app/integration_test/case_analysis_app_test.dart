@@ -101,11 +101,15 @@ void main() {
       await shot('${shotName}_running');
       final end = DateTime.now().add(Duration(seconds: seconds));
       while (find.byType(CaseBrowserDialog).evaluate().isNotEmpty) {
-        if (find.text(tr('case.browser.verification')).evaluate().isNotEmpty && !sawVerification) {
+        // 採購網要求驗證：App 停下來交給使用者。測試不會（也不該）通過驗證，像使用者一樣選「略過剩下的公告」
+        if (find.text(tr('case.browser.verify.title')).evaluate().isNotEmpty) {
           sawVerification = true;
           // ignore: avoid_print
-          print('VERIFICATION: the site asked for a check; automatic notice opening stopped');
+          print('VERIFICATION: paused and handed to the user; skipping the remaining notices');
           await shot('${shotName}_verification');
+          await pause(3000); // 確認真的停住，沒有繼續自動點開
+          expect(find.text(tr('case.browser.verify.title')), findsOneWidget, reason: 'should stay paused until the user acts');
+          await click(find.text(tr('case.browser.verify.skip')), 'Skip the remaining notices');
         }
         if (DateTime.now().isAfter(end)) fail('timed out waiting for the automatic cross-reference to finish and close');
         await tester.pump(const Duration(milliseconds: 400));

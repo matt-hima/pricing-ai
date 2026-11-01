@@ -867,5 +867,8 @@ const Map<String, String> enStrings = {
   'case.rev.cases': "Reviewed {n} (attended {a})",
   'case.rev.winners': "Won by: {w}",
   'case.rev.note': "Committee members are published after the award under Taiwan's Government Procurement Act, for transparency only. Contacting, lobbying or seeking favours from committee members is prohibited; do not use this information for that.",
-  'case.browser.verification': "The procurement site asked for a verification check (to prevent mass automated queries). The app does not pass verification checks for you, so it stopped opening award notices automatically; other results are still brought back. To see more notices, complete the check on the left yourself and open cases by hand.",
+  'case.browser.verification': "Skipped the remaining award notices; other results are still brought back. To see more notices later, complete the check yourself and open them by hand.",
+  'case.browser.verify.title': "Please complete the verification check",
+  'case.browser.verify.body': "The procurement site asks for a check (to prevent automated mass queries). Pick the pictures on the left yourself and submit; the app then continues opening the remaining notices automatically. The app does not recognize or pick verification pictures for you.",
+  'case.browser.verify.skip': "Skip the remaining notices",
 };

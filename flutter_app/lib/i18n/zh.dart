@@ -868,5 +868,8 @@ const Map<String, String> zhStrings = {
   'case.rev.cases': "評選 {n} 件（出席 {a} 次）",
   'case.rev.winners': "得標：{w}",
   'case.rev.note': "評選委員名單依政府採購法於決標後公開，僅供了解評選情形。依法不得與評選委員接觸、請託或關說，也不要用這些資料做這類事。",
-  'case.browser.verification': "採購網要求「驗證碼檢核」（為防止程式大量查詢）。App 不會自動通過驗證，已停止自動點開決標公告；其他結果照常帶回。若要看更多公告，請在左邊自己完成驗證後手動點開。",
+  'case.browser.verification': "已略過剩下的決標公告；其他結果照常帶回。之後若要看更多公告，可以自己完成驗證後手動點開。",
+  'case.browser.verify.title': "請完成驗證碼檢核",
+  'case.browser.verify.body': "採購網要求驗證（為防止程式大量查詢）。請在左邊依畫面指示自己選好圖片並送出；完成後會自動繼續點開剩下的公告。App 不會替你辨識或點選驗證圖片。",
+  'case.browser.verify.skip': "略過剩下的公告",
 };

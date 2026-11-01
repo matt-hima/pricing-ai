@@ -867,5 +867,8 @@ const Map<String, String> ptStrings = {
   'case.rev.cases': "Avaliou {n} (presente em {a})",
   'case.rev.winners': "Vencedores: {w}",
   'case.rev.note': "Os membros da comissão são publicados após a adjudicação pela Lei de Compras Públicas de Taiwan, apenas para transparência. É proibido contatar ou pressionar membros da comissão; não use estas informações para isso.",
-  'case.browser.verification': "O site de compras pediu uma verificação (para impedir consultas automáticas em massa). O app não passa por verificações por você, então parou de abrir avisos automaticamente; os outros resultados são trazidos normalmente. Para ver mais avisos, conclua a verificação à esquerda e abra os casos manualmente.",
+  'case.browser.verification': "Os avisos restantes foram pulados; os outros resultados são trazidos normalmente. Para ver mais avisos depois, conclua a verificação e abra-os manualmente.",
+  'case.browser.verify.title': "Conclua a verificação",
+  'case.browser.verify.body': "O site de compras pede uma verificação (para impedir consultas automáticas em massa). Escolha as imagens à esquerda e envie; o app continua abrindo os avisos restantes automaticamente. O app não reconhece nem escolhe as imagens de verificação por você.",
+  'case.browser.verify.skip': "Pular os avisos restantes",
 };
