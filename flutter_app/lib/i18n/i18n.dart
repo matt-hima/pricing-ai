@@ -40,6 +40,17 @@ enum Lang {
     return en;
   }
 
+  /// 系統的偏好語言清單（依使用者設定的順序，例如 ["ja-JP", "zh-Hant-TW", "en-US"]）→ 第一個支援的語言；都不支援就用英文
+  static Lang detectAny(Iterable<String> tags) {
+    for (final t in tags) {
+      final l = t.toLowerCase();
+      for (final x in values) {
+        if (l == x.name || l.startsWith('${x.name}-') || l.startsWith('${x.name}_')) return x;
+      }
+    }
+    return en;
+  }
+
   /// 網址參數 ?lang= 的寬鬆解析（zh、zh-tw、zh-hant、ja、en、pt、es…）；不認得則為 null
   static Lang? fromParam(String? p) {
     final l = (p ?? '').toLowerCase();

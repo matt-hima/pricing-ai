@@ -13,6 +13,7 @@ const Map<String, String> esStrings = {
   'gpu.reason.limits': "Los límites de WebGPU de esta GPU son insuficientes para ejecutar el modelo de IA local ({detail}); pruebe un ordenador con GPU dedicada (enchufado y sin ahorro de energía) u otro dispositivo",
   'gpu.reason.nobridge': "No se encontró el script puente de la IA",
   'help.tooltip': "Guía y descargo de responsabilidad",
+  'lang.system': "Idioma del sistema (automático)",
   'lang.tooltip': "Idioma",
   'btn.cancel': "Cancelar",
   'btn.clear': "Borrar",

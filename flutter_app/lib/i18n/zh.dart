@@ -14,6 +14,7 @@ const Map<String, String> zhStrings = {
   'gpu.reason.limits': "這張 GPU 的 WebGPU 上限不足，無法執行本地 AI 模型（{detail}）；可改用有獨立顯卡的電腦（插電、關閉省電模式）或其他裝置",
   'gpu.reason.nobridge': "找不到 AI 橋接程式",
   'help.tooltip': "使用說明與免責條款",
+  'lang.system': "跟隨系統語言（自動）",
   'lang.tooltip': "語言",
   'btn.cancel': "取消",
   'btn.clear': "清除",

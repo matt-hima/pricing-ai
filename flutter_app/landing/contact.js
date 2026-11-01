@@ -1,3 +1,36 @@
+// 語言：第一次打開 /（英文預設頁）時依瀏覽器的偏好語言換到對應語言頁；選過語言就記住，之後照選擇。
+// 直接打開某個語言頁（/zh/ 等）不會被換掉，搜尋引擎仍看得到每個語言版本。
+(function () {
+  var KEY = "pricingai.lang", here = document.body.dataset.lang || "en", paths = {en: "/", zh: "/zh/", ja: "/ja/", pt: "/pt/", es: "/es/"};
+  function get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function set(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a[data-lang]");
+    if (a) set(a.dataset.lang);
+    var open = document.querySelector("details.langsel[open]");
+    if (open && !open.contains(ev.target)) open.removeAttribute("open"); // 點選單外面就關起來
+  });
+  // 選單打開時選邊：右邊放不下就靠左對齊，避免超出畫面（窄螢幕上按鈕會換到左邊）
+  var sel = document.querySelector("details.langsel");
+  if (sel) sel.addEventListener("toggle", function () {
+    var m = sel.querySelector(".langs");
+    if (!sel.open || !m) return;
+    m.style.left = ""; m.style.right = "";
+    var r = m.getBoundingClientRect();
+    if (r.left < 8) { m.style.left = "0"; m.style.right = "auto"; }
+  });
+  if (location.pathname !== "/") return;
+  var want = get();
+  if (!want) {
+    var list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < list.length && !want; i++) {
+      var l = (list[i] || "").toLowerCase().split(/[-_]/)[0];
+      if (paths[l]) want = l;
+    }
+  }
+  if (want && want !== here && paths[want]) location.replace(paths[want] + location.search + location.hash);
+})();
+
 // 下載鈕依作業系統切換（Mac / Windows / 其他）；「搶先使用」會打開聯絡表單並選好主題。
 // 聯絡表單：公開 Google フォームの formResponse に直接 POST する（サーバー不要・応答は読めないので送れた時点で成功扱い）。
 (function () {

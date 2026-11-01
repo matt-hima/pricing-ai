@@ -8,6 +8,7 @@ import '../site/ui/editor_page.dart';
 import '../site/ui/popup_observer.dart';
 import 'case_analysis_page.dart';
 import 'home_page.dart';
+import 'lang_menu.dart';
 import 'service_pricing_page.dart';
 import 'settings_page.dart';
 
@@ -76,6 +77,8 @@ class _AppShellState extends State<AppShell> {
                     onSelectionChanged: (v) => _go(v.first),
                   ),
                   const Spacer(),
+                  // 介面語言：每個分頁都看得到，直接顯示目前的語言名稱
+                  LangMenu(state: s, color: Colors.white, labelled: MediaQuery.sizeOf(context).width >= 720),
                   IconButton(
                     tooltip: tr('set.open'),
                     color: Colors.white,
