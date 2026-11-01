@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Locale, WidgetsBinding, WidgetsBindingObserver;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config.dart';
@@ -34,7 +35,7 @@ String fmtDate(DateTime d) =>
 
 String fmtNum(double n) => n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
-class AppState extends ChangeNotifier {
+class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Quote q = Quote();
   AiResult? ai;
   GpuInfo gpu = const GpuInfo(false, false, '');
@@ -45,6 +46,20 @@ class AppState extends ChangeNotifier {
   String? _progressText;
   String get progressText => _progressText ?? tr('prog.notLoaded');
   Lang get lang => I18n.lang;
+
+  /// 沒有自己選過語言（或選了「跟隨系統」）：介面語言跟著系統的偏好語言，系統改了也跟著改
+  bool followSystem = true;
+
+  /// 系統的偏好語言清單（依使用者設定的順序）→ 第一個支援的語言。
+  /// 桌面版的 Platform.localeName 是「地區格式」，不一定是使用者選的介面語言，所以優先用偏好語言清單。
+  static Lang systemLang() {
+    final tags = <String>[];
+    try {
+      tags.addAll(WidgetsBinding.instance.platformDispatcher.locales.map((l) => l.toLanguageTag()));
+    } catch (_) {}
+    tags.add(browserLanguage());
+    return Lang.detectAny(tags);
+  }
   String modelBase = modelOptions[1].base;
   bool pdfBusy = false;
   String pdfStatus = '';
@@ -108,10 +123,15 @@ class AppState extends ChangeNotifier {
       final raw = _prefs!.getString(_storeKey);
       if (raw != null) q = Quote.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       introAccepted = _prefs!.getBool(_introKey) ?? false;
-      I18n.lang = Lang.fromParam(queryLanguage()) ?? Lang.fromCode(_prefs!.getString(_langKey)) ?? Lang.detect(browserLanguage());
+      final query = Lang.fromParam(queryLanguage()), saved = Lang.fromCode(_prefs!.getString(_langKey));
+      I18n.lang = query ?? saved ?? systemLang();
+      followSystem = query == null && saved == null;
     } catch (_) {
-      I18n.lang = Lang.fromParam(queryLanguage()) ?? Lang.detect(browserLanguage());
+      I18n.lang = Lang.fromParam(queryLanguage()) ?? systemLang();
     }
+    try {
+      WidgetsBinding.instance.addObserver(this); // 系統語言改變時（跟隨系統的話）跟著換
+    } catch (_) {}
     _applyLangToPage();
     ready = true;
     notifyListeners();
@@ -164,8 +184,33 @@ class AppState extends ChangeNotifier {
     _schedulePreview();
   }
 
-  /// 切換介面語言：AI 結果是用舊語言產生的，所以一併失效，其餘內容即時換語言
+  /// 使用者選了一種語言：記住它，之後不再跟隨系統
   void setLang(Lang l) {
+    followSystem = false;
+    try {
+      _prefs?.setString(_langKey, l.code);
+    } catch (_) {}
+    _switchLang(l);
+    notifyListeners();
+  }
+
+  /// 改回跟隨系統語言：忘掉之前的選擇，馬上換成系統的偏好語言
+  void useSystemLang() {
+    followSystem = true;
+    try {
+      _prefs?.remove(_langKey);
+    } catch (_) {}
+    _switchLang(systemLang());
+    notifyListeners();
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (followSystem) _switchLang(systemLang());
+  }
+
+  /// 切換介面語言：AI 結果是用舊語言產生的，所以一併失效，其餘內容即時換語言
+  void _switchLang(Lang l) {
     if (l == I18n.lang) return;
     I18n.lang = l;
     if (ai != null) {
@@ -173,9 +218,6 @@ class AppState extends ChangeNotifier {
       _progressText = tr('prog.stale');
       progress = 0;
     }
-    try {
-      _prefs?.setString(_langKey, l.code);
-    } catch (_) {}
     _applyLangToPage();
     notifyListeners();
     _schedulePreview(delay: const Duration(milliseconds: 300));
@@ -278,6 +320,9 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _previewTimer?.cancel();
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
     super.dispose();
   }
 

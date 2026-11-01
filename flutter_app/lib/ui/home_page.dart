@@ -7,7 +7,6 @@ import 'brand_logo.dart';
 import 'get_app.dart';
 import 'form_panel.dart';
 import 'intro_page.dart';
-import 'lang_menu.dart';
 import 'middle_pane.dart';
 import 'sidebar.dart';
 
@@ -71,7 +70,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ]),
               actions: [
-                LangMenu(state: s, color: const Color(0xFF263C5C)),
                 IconButton(
                   tooltip: tr('help.tooltip'),
                   color: const Color(0xFF263C5C),

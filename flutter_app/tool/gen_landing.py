@@ -285,7 +285,8 @@ def page(code):
     t = T[code]
     url = ORIGIN + path
     alts = "\n".join(f'<link rel="alternate" hreflang="{LANGS[c][2]}" href="{ORIGIN}{LANGS[c][0]}">' for c in LANGS) + f'\n<link rel="alternate" hreflang="x-default" href="{ORIGIN}/">'
-    langnav = "".join(f'<a href="{LANGS[c][0]}" hreflang="{LANGS[c][2]}" lang="{LANGS[c][1]}"{" aria-current=\"page\"" if c == code else ""}>{LANGS[c][4]}</a>' for c in LANGS)
+    langnav = "".join(f'<a href="{LANGS[c][0]}" hreflang="{LANGS[c][2]}" lang="{LANGS[c][1]}" data-lang="{c}"{" aria-current=\"page\"" if c == code else ""}>{LANGS[c][4]}</a>' for c in LANGS)
+    globe_s = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8 8 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3a15.7 15.7 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.4-3.6A15.7 15.7 0 0 0 8.1 8zM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h3a8 8 0 0 1-4.4 3.6zM16.3 14a16.5 16.5 0 0 0 0-4h3.4a8 8 0 0 1 0 4z"/></svg>'
     ld = [
       {"@context": "https://schema.org", "@type": "Organization", "name": "Pricing AI", "url": ORIGIN + "/", "logo": ORIGIN + "/logo.svg", "sameAs": [REPO_URL]},
       {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Pricing AI", "url": url, "description": t["desc"], "applicationCategory": "BusinessApplication", "operatingSystem": "macOS, Windows, Web", "softwareVersion": VERSION, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "downloadUrl": url + "#download", "inLanguage": hreflang},
@@ -355,12 +356,12 @@ def page(code):
 <link rel="stylesheet" href="/landing.css">
 <script type="application/ld+json">{ldjson}</script>
 </head>
-<body>
+<body data-lang="{code}">
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap bar">
 <a class="brand" href="{path}" aria-label="Pricing AI"><img src="/logo.svg" alt="Pricing AI" width="168" height="44"></a>
 <nav aria-label="Main"><a href="#features">{e(nav[0])}</a><a href="#compare">{e(d['cmp_title'])}</a><a href="#faq">{e(nav[2])}</a><a href="#contact">{e(nav[3])}</a><a class="navgh" href="{REPO_URL}" rel="noopener">{code_icon}{e(d['gh'])}</a><a class="navdl" href="#download">{e(d['nav'])}</a></nav>
-<nav class="langs" aria-label="Language">{langnav}</nav>
+<details class="langsel"><summary aria-label="Language">{globe_s}<span>{native}</span><svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg></summary><nav class="langs" aria-label="Language">{langnav}</nav></details>
 </div></header>
 <main id="main">
 <section class="hero"><div class="wrap herogrid">
@@ -419,7 +420,10 @@ CSS = """:root{--bg:#f6f7fb;--fg:#1c2433;--mut:#4d586b;--card:#fff;--brand:#263c
 .brand{display:block;background:#fff;border-radius:12px;padding:4px 10px;line-height:0}.brand img{height:40px;width:auto}
 nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;font-size:15px}nav a{color:var(--fg);text-decoration:none;padding:6px 2px}nav a:hover{color:var(--acc);text-decoration:underline}
 nav a.navdl{background:var(--acc);color:var(--onacc);border-radius:99px;padding:6px 16px;font-weight:700}nav a.navdl:hover{text-decoration:none;filter:brightness(1.08);color:var(--onacc)}
-.langs{font-size:13px}.langs a{color:var(--mut)}.langs a[aria-current]{color:var(--fg);font-weight:700}
+.langsel{position:relative}.langsel summary{list-style:none;display:flex;align-items:center;gap:2px;cursor:pointer;padding:6px 10px;border:1px solid var(--line);border-radius:99px;font-size:14px;background:var(--card);user-select:none}
+.langsel summary::-webkit-details-marker{display:none}.langsel .caret{width:18px;height:18px;fill:currentColor}.langsel[open] summary{border-color:var(--acc)}
+.langsel .langs{position:absolute;right:0;top:calc(100% + 6px);display:grid;gap:0;min-width:170px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.15);z-index:20}
+.langsel .langs a{padding:8px 12px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:15px}.langsel .langs a:hover{background:color-mix(in srgb,var(--acc) 12%,transparent)}.langsel .langs a[aria-current]{font-weight:700;color:var(--acc)}
 .hero{padding:64px 0 56px;background:radial-gradient(1200px 500px at 80% -10%,#3b6fd455,transparent),linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff;overflow:hidden}
 .herogrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center}
 .badges{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0 0 20px}.badges li{background:rgba(255,255,255,.14);border-radius:99px;padding:4px 14px;font-size:14px}
@@ -453,7 +457,7 @@ h2{font-size:clamp(24px,3.6vw,34px);line-height:1.25;margin:0 0 6px;color:var(--
 .steps li:before{content:counter(s);position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:50%;background:var(--brand);color:var(--bg);display:grid;place-items:center;font-weight:700}
 .steps b{display:block;margin-bottom:4px}.steps span{color:var(--mut)}
 .who{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin:14px 0 0}.who li{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 16px}
-details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 18px;margin:0 0 10px}summary{cursor:pointer;font-weight:600;padding:12px 0}details p{margin:0 0 14px;color:var(--mut)}
+#faq details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 18px;margin:0 0 10px}#faq summary{cursor:pointer;font-weight:600;padding:12px 0}#faq details p{margin:0 0 14px;color:var(--mut)}
 .form{display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}.form label{display:grid;gap:4px;font-size:14px;color:var(--mut)}
 .form small{font-weight:400}.form input,.form select,.form textarea{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);width:100%}
 .hp{position:absolute;left:-9999px;height:0;overflow:hidden}.status{min-height:1.5em;margin:0;font-weight:600}.status.ok{color:#1a7f4b}.status.err{color:#c0392b}
@@ -462,7 +466,40 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 @media(max-width:640px){.top{position:static}.brand img{height:32px}nav{gap:2px 12px;font-size:14px}nav a{padding:4px 0}nav a.navdl{padding:4px 14px}.hero{padding:28px 0 36px}.bar{gap:4px 12px}.btn.big{width:100%}.req div{grid-template-columns:1fr;gap:2px}.cmp th,.cmp td{padding:10px 8px}.mtabs span:nth-child(-n+2){display:none}}
 """
 
-JS = """// 下載鈕依作業系統切換（Mac / Windows / 其他）；「搶先使用」會打開聯絡表單並選好主題。
+JS = """// 語言：第一次打開 /（英文預設頁）時依瀏覽器的偏好語言換到對應語言頁；選過語言就記住，之後照選擇。
+// 直接打開某個語言頁（/zh/ 等）不會被換掉，搜尋引擎仍看得到每個語言版本。
+(function () {
+  var KEY = "pricingai.lang", here = document.body.dataset.lang || "en", paths = {en: "/", zh: "/zh/", ja: "/ja/", pt: "/pt/", es: "/es/"};
+  function get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function set(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a[data-lang]");
+    if (a) set(a.dataset.lang);
+    var open = document.querySelector("details.langsel[open]");
+    if (open && !open.contains(ev.target)) open.removeAttribute("open"); // 點選單外面就關起來
+  });
+  // 選單打開時選邊：右邊放不下就靠左對齊，避免超出畫面（窄螢幕上按鈕會換到左邊）
+  var sel = document.querySelector("details.langsel");
+  if (sel) sel.addEventListener("toggle", function () {
+    var m = sel.querySelector(".langs");
+    if (!sel.open || !m) return;
+    m.style.left = ""; m.style.right = "";
+    var r = m.getBoundingClientRect();
+    if (r.left < 8) { m.style.left = "0"; m.style.right = "auto"; }
+  });
+  if (location.pathname !== "/") return;
+  var want = get();
+  if (!want) {
+    var list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < list.length && !want; i++) {
+      var l = (list[i] || "").toLowerCase().split(/[-_]/)[0];
+      if (paths[l]) want = l;
+    }
+  }
+  if (want && want !== here && paths[want]) location.replace(paths[want] + location.search + location.hash);
+})();
+
+// 下載鈕依作業系統切換（Mac / Windows / 其他）；「搶先使用」會打開聯絡表單並選好主題。
 // 聯絡表單：公開 Google フォームの formResponse に直接 POST する（サーバー不要・応答は読めないので送れた時点で成功扱い）。
 (function () {
   var box = document.querySelector(".dlbox");

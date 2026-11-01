@@ -13,6 +13,7 @@ const Map<String, String> jaStrings = {
   'gpu.reason.limits': "このGPUのWebGPU上限ではローカルAIモデルを実行できません（{detail}）。ディスクリートGPU搭載のPC（電源接続・省電力オフ）や別の端末をお試しください",
   'gpu.reason.nobridge': "AI ブリッジが見つかりません",
   'help.tooltip': "ご利用案内と免責事項",
+  'lang.system': "システムの言語（自動）",
   'lang.tooltip': "言語",
   'btn.cancel': "キャンセル",
   'btn.clear': "クリア",

@@ -13,6 +13,7 @@ const Map<String, String> enStrings = {
   'gpu.reason.limits': "This GPU's WebGPU limits are too low to run the local AI model ({detail}); try a computer with a dedicated GPU (plugged in, power saver off) or another device",
   'gpu.reason.nobridge': "AI bridge script not found",
   'help.tooltip': "Guide and disclaimer",
+  'lang.system': "System language (auto)",
   'lang.tooltip': "Language",
   'btn.cancel': "Cancel",
   'btn.clear': "Clear",

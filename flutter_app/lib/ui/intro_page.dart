@@ -5,7 +5,6 @@ import '../i18n/i18n.dart';
 import '../llm.dart';
 import 'get_app.dart';
 import 'brand_logo.dart';
-import 'lang_menu.dart';
 
 /// 首頁介紹：品牌、AI 本地模型測試性質聲明、估價流程、免責條款
 class IntroPage extends StatefulWidget {
@@ -107,7 +106,6 @@ class _IntroPageState extends State<IntroPage> {
               ]),
             ),
           ),
-          LangMenu(state: s, color: Colors.white),
         ]),
         const SizedBox(height: 18),
         Padding(
