@@ -50,6 +50,7 @@ Recurso do app desktop. O Sistema de Compras Eletrônicas do governo (web.pcc.go
 - Possíveis concorrentes: todos os licitantes dos avisos abertos; consulte o histórico de qualquer empresa nos últimos 12 meses (vitórias, propostas, taxa de vitória, valor típico, órgãos).
 - O Google Modo IA abre no navegador do app para informações públicas sobre uma empresa ou um mercado, para você ler.
 - Exporte os casos em CSV.
+- Dados abertos oficiais: baixe o conjunto de adjudicações do Sistema de Compras (contratos de TWD 1M ou mais, com cerca de 2 meses de atraso) e analise vários anos de uma vez, sem verificações: valores, vencedores frequentes, órgãos e formas de adjudicação. Fonte: Comissão de Obras Públicas do Yuan Executivo, dados abertos sob a Open Government Data License v1.0.
 
 ## App desktop ou navegador?
 
