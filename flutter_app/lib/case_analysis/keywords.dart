@@ -2,6 +2,8 @@
 /// 所以「網站」找不到「網頁」「官網」的案子，要分開查再合併。這裡依政府標案常見的寫法列出相關的查詢字。
 library;
 
+import 'sources/source.dart';
+
 /// 常見寫法：key 是使用者可能輸入的字，value 是標案名稱裡常見的其他寫法（都是較短、彼此不重複包含的字）
 const _related = <String, List<String>>{
   '網站': ['網頁', '官網', '入口網', '資訊網', '網路平臺'],
@@ -65,4 +67,40 @@ bool _coveredBy(String k, Iterable<String> others) => others.any((o) => o != k &
     }
   }
   return (primary: primary, suggestions: out.take(8).toList());
+}
+
+/// 其他國家：中文關鍵字裡的常見概念 → 當地標案名稱的常見寫法（只是預設值，使用者可以自己改）。
+/// 每個概念：觸發的中文字、英國、西班牙、葡萄牙、日本的寫法
+const _concepts = <(List<String>, List<String>, List<String>, List<String>, List<String>)>[
+  (['網站', '網頁', '官網', '入口網'], ['website', 'web site', 'web portal'], ['sitio web', 'portal web', 'página web'], ['website', 'sítio web', 'sítio na internet', 'página web', 'portal web'], ['ウェブサイト', 'ホームページ', 'Webサイト']),
+  (['APP', 'App', 'app', '行動應用', '應用程式'], ['app', 'mobile application'], ['aplicación móvil', 'app'], ['aplicação móvel', 'app'], ['アプリ', 'スマートフォン']),
+  (['系統', '平臺', '平台', '資訊系統'], ['system', 'platform', 'software'], ['sistema', 'plataforma', 'software'], ['sistema', 'plataforma', 'software'], ['システム', 'プラットフォーム']),
+  (['維護', '維運'], ['maintenance', 'support'], ['mantenimiento', 'soporte'], ['manutenção', 'suporte'], ['保守', '運用']),
+  (['建置', '開發', '設計'], ['development', 'design', 'build'], ['desarrollo', 'diseño', 'implantación'], ['desenvolvimento', 'conceção', 'implementação'], ['構築', '開発', '設計']),
+  (['電子商務', '電商', '購物網'], ['e-commerce', 'online shop'], ['comercio electrónico', 'tienda online'], ['comércio eletrónico', 'loja online'], ['電子商取引', 'ECサイト']),
+  (['雲端', 'SaaS'], ['cloud', 'saas'], ['nube', 'cloud', 'saas'], ['cloud', 'nuvem', 'saas'], ['クラウド']),
+  (['AI', '人工智慧'], ['artificial intelligence'], ['inteligencia artificial'], ['inteligência artificial'], ['AI', '人工知能']),
+  (['資安', '資訊安全'], ['cyber security', 'cybersecurity', 'information security'], ['ciberseguridad', 'seguridad de la información'], ['cibersegurança', 'segurança da informação'], ['セキュリティ', '情報セキュリティ']),
+  (['數位', '數位化', '電子化'], ['digital'], ['digital', 'digitalización'], ['digital', 'digitalização'], ['デジタル']),
+  (['顧問', '諮詢'], ['consultancy', 'advisory'], ['consultoría', 'asesoramiento'], ['consultoria', 'assessoria'], ['コンサルティング', '支援業務']),
+  (['教育訓練', '培訓', '課程'], ['training'], ['formación'], ['formação'], ['研修']),
+  (['影片', '影音', '拍攝'], ['video', 'film production'], ['vídeo', 'producción audiovisual'], ['vídeo', 'produção audiovisual'], ['動画', '映像']),
+  (['印刷'], ['printing'], ['impresión', 'imprenta'], ['impressão', 'tipografia'], ['印刷']),
+  (['活動', '展覽', '行銷'], ['event', 'marketing', 'campaign'], ['evento', 'marketing', 'campaña'], ['evento', 'marketing', 'campanha'], ['イベント', '広報', 'プロモーション']),
+  (['清潔', '清潔維護'], ['cleaning'], ['limpieza'], ['limpeza'], ['清掃']),
+  (['保全', '保全服務'], ['security services', 'guarding'], ['vigilancia', 'seguridad privada'], ['vigilância', 'segurança'], ['警備']),
+  (['翻譯'], ['translation'], ['traducción'], ['tradução'], ['翻訳']),
+];
+
+/// 中文關鍵字 → [c] 國家的標案名稱常見寫法（認不出概念時回傳空清單，由使用者自己輸入）
+List<String> localKeywords(String zhInput, Country c) {
+  if (c == Country.tw) return expandKeywords(zhInput).primary;
+  final out = <String>[];
+  for (final (zh, uk, es, pt, jp) in _concepts) {
+    if (!zh.any(zhInput.contains)) continue;
+    for (final k in switch (c) { Country.uk => uk, Country.es => es, Country.pt => pt, Country.jp => jp, Country.tw => const <String>[] }) {
+      if (!out.contains(k)) out.add(k);
+    }
+  }
+  return out;
 }

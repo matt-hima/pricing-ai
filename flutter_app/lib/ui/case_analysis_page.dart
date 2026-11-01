@@ -14,6 +14,7 @@ import '../case_analysis/case_store.dart';
 import '../case_analysis/case_store_open.dart';
 import '../case_analysis/case_summary.dart' show priceFacts, competitionFacts;
 import '../case_analysis/pcc.dart';
+import '../case_analysis/sources/source.dart';
 import '../i18n/i18n.dart';
 import '../llm.dart' show downloadText;
 import '../pdf_export.dart' show renderPdfDoc;
@@ -57,8 +58,26 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
 
   /// 官方開放資料：匯入本機資料庫後，用「篩選 → 量值 → 分組」的方式提問（參考 Metabase）
   _DataView? data;
-  int dataDone = 0, dataTotal = 0;
+  int dataDone = 0, dataTotal = 0, dataBytes = 0;
+  Duration? dataWait; // 伺服器要求等待（流量限制）
+  bool dataStop = false;
   bool dataLoading = false;
+
+  /// 官方資料的國家：台灣以外用當地語言的關鍵字（依中文關鍵字帶入常見寫法，可以自己改）
+  Country dataCountry = Country.tw;
+  final localKw = TextEditingController();
+
+  void _pickCountry(Country c) {
+    setState(() {
+      dataCountry = c;
+      data = null;
+      localKw.text = localKeywords(keyword.text.trim(), c).join(', ');
+    });
+  }
+
+  List<String> _dataKeywords() => dataCountry == Country.tw
+      ? _keywordsNow()
+      : [for (final k in localKw.text.split(RegExp(r'[,，、;；]'))) if (k.trim().isNotEmpty) k.trim()];
   bool searched = false;
 
   /// 圖表（可複製成圖片、下載 PNG，匯出 PDF 時也放進報告）
@@ -95,6 +114,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   void dispose() {
     keyword.dispose();
     myPrice.dispose();
+    localKw.dispose();
     super.dispose();
   }
 
@@ -310,7 +330,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
 
   AwardFilter _filter({String? source}) {
     final now = DateTime.now();
-    return AwardFilter(keywords: _keywordsNow(), cate: cate, from: DateTime(now.year, now.month - months, now.day), source: source);
+    return AwardFilter(keywords: _dataKeywords(), cate: cate, from: DateTime(now.year, now.month - months, now.day), source: source, country: dataCountry);
   }
 
   /// 官方資料：只下載還沒匯入或最近有更新的檔，然後對資料庫提問
@@ -318,22 +338,47 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     if (dataLoading) return;
     final store = await widget.openStore();
     if (store == null) return;
-    final files = datasetFiles(DateTime.now(), months);
+    final country = dataCountry;
     setState(() {
       dataLoading = true;
       dataDone = 0;
-      dataTotal = files.length;
+      dataTotal = 0;
+      dataBytes = 0;
+      dataWait = null;
+      dataStop = false;
     });
+    void progress(int d, int n) {
+      if (mounted) {
+        setState(() {
+          dataDone = d;
+          dataTotal = n;
+          dataBytes = 0;
+          dataWait = null;
+        });
+      }
+    }
+
+    void wait(Duration d) {
+      if (mounted) setState(() => dataWait = d);
+    }
+
+    var shownMb = -1;
+    void bytes(int n) {
+      final mb = n >> 20; // 每多 1 MB 才更新畫面
+      if (mb != shownMb && mounted) {
+        shownMb = mb;
+        setState(() {
+          dataBytes = n;
+          dataWait = null;
+        });
+      }
+    }
+
     try {
-      final downloaded = await store.syncDataset(files, onProgress: (d, n) {
-        if (mounted) {
-          setState(() {
-            dataDone = d;
-            dataTotal = n;
-          });
-        }
-      });
-      final v = await _DataView.ask(store.db, _filter(source: 'dataset'), downloaded);
+      final downloaded = country == Country.tw
+          ? await store.syncDataset(datasetFiles(DateTime.now(), months), onProgress: progress)
+          : await store.syncSource(sourcesFor(country), months, onProgress: progress, onBytes: bytes, onWait: wait, cancelled: () => dataStop);
+      final v = await _DataView.ask(store.db, _filter(source: 'dataset'), downloaded, country);
       if (mounted) setState(() => data = v);
     } finally {
       if (mounted) setState(() => dataLoading = false);
@@ -406,12 +451,13 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           ]),
         if (v != null && vst != null)
           ReportSection(
-            tr('case.data'),
+            '${tr('case.data')} · ${tr('case.country.${v.country.name}')}',
             lines: [
-              tr('hist.f.price', {'n': '${vst.count}', 'median': _money(vst.median), 'p25': _short(vst.p25), 'p75': _short(vst.p75)}),
+              if (v.country != Country.tw) _kv(tr('case.data.kwLocal'), v.keywords.join(Lang.list)),
+              tr('hist.f.price', {'n': '${vst.count}', 'median': v.money(vst.median), 'p25': v.short(vst.p25), 'p75': v.short(vst.p75)}),
             ],
             bullets: [
-              if (v.vendors.isNotEmpty) _kv(tr('case.data.winners'), v.vendors.take(5).map((r) => '${r.name} (${tr('case.data.vendor', {'w': '${r.wins}', 't': _short(r.wonTotal)})})').join(Lang.list)),
+              if (v.vendors.isNotEmpty) _kv(tr('case.data.winners'), v.vendors.take(5).map((r) => '${r.name} (${tr('case.data.vendor', {'w': '${r.wins}', 't': v.short(r.wonTotal)})})').join(Lang.list)),
               if (v.agencies.isNotEmpty) _kv(tr('case.topAgencies'), v.agencies.map((b) => '${b.label} (${b.count})').join(Lang.list)),
               if (v.ways.isNotEmpty) _kv(tr('case.data.ways'), v.ways.map((b) => '${b.label} (${b.count})').join(Lang.list)),
             ],
@@ -419,7 +465,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             table: [
               if (st == null) ...[
                 [tr('case.col.name'), tr('case.col.agency'), tr('case.col.winner'), tr('case.col.date'), tr('case.col.amount')],
-                for (final a in v.recent) [a.name, a.agency, a.winner, date(a.noticeDate), _money(a.amount)],
+                for (final a in v.recent) [a.name, a.agency, a.winner, date(a.noticeDate), v.money(a.amount)],
               ],
             ],
           ),
@@ -430,9 +476,11 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           ]),
       ],
       note: tr('case.disclaimer'),
-      sources: [if (st != null) tr('report.source.pcc'), if (vst != null) tr('case.data.source')],
+      sources: [if (st != null) tr('report.source.pcc'), if (v != null && vst != null) _sourceNote(v.country)],
     );
   }
+
+  String _sourceNote(Country c) => c == Country.tw ? tr('case.data.source') : tr('case.src.${c.name}');
 
   /// 匯出 PDF：擷取畫面上的圖表一起放進報告
   Future<void> _exportPdf() async {
@@ -494,14 +542,36 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     final v = data;
     final st = v == null || v.amounts.isEmpty ? null : CaseStats.ofAmounts(v.amounts);
     final maxMonth = v == null ? 1 : v.months.fold<int>(1, (m, b) => b.count > m ? b.count : m);
+    String money(double x) => v?.money(x) ?? _money(x);
+    String short(double x) => v?.short(x) ?? _short(x);
     return _card(
       context,
       tr('case.data'),
-      sub: tr('case.data.sub'),
+      sub: dataCountry == Country.tw ? tr('case.data.sub') : tr('case.src.${dataCountry.name}.sub'),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          for (final c in Country.values)
+            ChoiceChip(
+              key: ValueKey('country:${c.name}'),
+              label: Text(tr('case.country.${c.name}')),
+              selected: dataCountry == c,
+              onSelected: dataLoading ? null : (_) => _pickCountry(c),
+            ),
+        ]),
+        if (dataCountry != Country.tw) ...[
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('case.localKeywords'),
+            controller: localKw,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(labelText: tr('case.data.kwLocal'), helperText: tr('case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
+          ),
+          if (dataCountry == Country.es) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('case.src.es.slow'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
+        ],
+        const SizedBox(height: 12),
         Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
           FilledButton.tonalIcon(
-            onPressed: dataLoading || _keywordsNow().isEmpty ? null : _analyzeDataset,
+            onPressed: dataLoading || _dataKeywords().isEmpty ? null : _analyzeDataset,
             icon: const Icon(Icons.dataset_outlined, size: 18),
             label: Text(tr('case.data.run', {'m': '$months'})),
           ),
@@ -510,16 +580,33 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
         if (dataLoading) ...[
           const SizedBox(height: 10),
           LinearProgressIndicator(value: dataTotal == 0 ? null : dataDone / dataTotal),
-          Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('case.data.progress', {'i': '$dataDone', 'n': '$dataTotal'}), style: t.labelSmall)),
+          Padding(padding: const EdgeInsets.only(top: 4), child: Text(
+                [
+                  tr('case.data.progress', {'i': '$dataDone', 'n': '$dataTotal'}),
+                  if (dataBytes > 0) tr('case.data.bytes', {'mb': '${dataBytes >> 20}'}),
+                  if (dataWait != null) tr('case.data.wait', {'s': '${dataWait!.inSeconds}'}),
+                ].join('  ·  '),
+                style: t.labelSmall,
+              )),
+          if (dataCountry != Country.tw)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const ValueKey('case.data.stop'),
+                onPressed: dataStop ? null : () => setState(() => dataStop = true),
+                icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                label: Text(dataStop ? tr('case.data.stopping') : tr('case.data.stop')),
+              ),
+            ),
         ],
         if (v != null && !dataLoading && v.amounts.isEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr('case.data.none'), style: t.bodyMedium)),
         if (v != null && st != null) ...[
           const SizedBox(height: 14),
           Wrap(spacing: 12, runSpacing: 12, children: [
             _Stat(tr('case.s.count'), '${st.count}'),
-            _Stat(tr('case.s.median'), _money(st.median)),
-            _Stat(tr('case.s.iqr'), '${_short(st.p25)} – ${_short(st.p75)}'),
-            _Stat(tr('case.s.mean'), _money(st.mean)),
+            _Stat(tr('case.s.median'), money(st.median)),
+            _Stat(tr('case.s.iqr'), '${short(st.p25)} – ${short(st.p75)}'),
+            _Stat(tr('case.s.mean'), money(st.mean)),
           ]),
           const SizedBox(height: 16),
           Wrap(spacing: 32, runSpacing: 12, children: [
@@ -532,7 +619,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Text(
-                      '${r.name}  ·  ${tr('case.data.vendor', {'w': '${r.wins}', 't': _short(r.wonTotal)})}${r.bids > r.wins ? '  ·  ${tr('case.data.lost', {'l': '${r.bids - r.wins}'})}' : ''}',
+                      '${r.name}  ·  ${tr('case.data.vendor', {'w': '${r.wins}', 't': short(r.wonTotal)})}${r.bids > r.wins ? '  ·  ${tr('case.data.lost', {'l': '${r.bids - r.wins}'})}' : ''}',
                       style: t.bodySmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -547,7 +634,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             const SizedBox(height: 16),
             ChartFrame(
               boundary: _trendChart,
-              title: '${tr('case.data.trend')} · ${_keywordsNow().join(Lang.list)}',
+              title: '${tr('case.data.trend')} · ${tr('case.country.${v.country.name}')} · ${v.keywords.join(Lang.list)}',
               filename: 'case-awards-per-month',
               builder: (context) {
                 final t = Theme.of(context).textTheme;
@@ -593,13 +680,13 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
                 child: Row(children: [
                   Expanded(child: Text('${a.name}  ·  ${a.agency}${a.winner.isEmpty ? '' : '  ·  ${a.winner}'}', style: t.bodySmall?.copyWith(color: cs.primary), maxLines: 1, overflow: TextOverflow.ellipsis)),
                   const SizedBox(width: 8),
-                  Text(_money(a.amount), style: t.bodySmall),
+                  Text(money(a.amount), style: t.bodySmall),
                 ]),
               ),
             ),
         ],
         const SizedBox(height: 10),
-        Text(tr('case.data.source'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        Text(_sourceNote(v?.country ?? dataCountry), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
       ]),
     );
   }
@@ -963,9 +1050,15 @@ class _DataView {
   final List<Breakdown> agencies, ways, months;
   final List<AwardRow> recent;
   final int downloaded;
-  const _DataView(this.amounts, this.vendors, this.agencies, this.ways, this.months, this.recent, this.downloaded);
+  final Country country;
+  final List<String> keywords;
+  const _DataView(this.amounts, this.vendors, this.agencies, this.ways, this.months, this.recent, this.downloaded, this.country, this.keywords);
 
-  static Future<_DataView> ask(CaseDb db, AwardFilter f, int downloaded) async => _DataView(
+  /// 金額用這份資料的幣別
+  String money(double v) => formatMoney(v, country.currency);
+  String short(double v) => shortMoney(v, country.currency, cjk: I18n.lang.isCjk);
+
+  static Future<_DataView> ask(CaseDb db, AwardFilter f, int downloaded, Country country) async => _DataView(
         await db.amounts(f),
         await db.vendorRecords(f, limit: 8),
         await db.breakdown(f, Dimension.agency, limit: 5),
@@ -973,5 +1066,7 @@ class _DataView {
         await db.breakdown(f, Dimension.month, limit: 36),
         await db.awards(f, limit: 8),
         downloaded,
+        country,
+        f.keywords,
       );
 }

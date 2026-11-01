@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -8,6 +9,7 @@ import 'package:self_quote/app_state.dart';
 import 'package:self_quote/case_analysis/case_db.dart';
 import 'package:self_quote/case_analysis/case_store.dart';
 import 'package:self_quote/case_analysis/opendata.dart';
+import 'package:self_quote/case_analysis/sources/source.dart';
 import 'package:self_quote/case_analysis/pcc.dart';
 import 'package:self_quote/i18n/i18n.dart';
 import 'package:self_quote/ui/case_analysis_page.dart';
@@ -94,6 +96,48 @@ void main() {
     expect(find.text(tr('case.data.source')), findsOneWidget); // 授權要求的出處
     expect(tester.takeException(), isNull);
   });
+  testWidgets('other countries: pick the UK, local keywords are filled in, results in pounds with the UK attribution', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    I18n.lang = Lang.zh;
+    final d = DateTime.now().subtract(const Duration(days: 3)).toUtc().toIso8601String();
+    final page = jsonEncode({
+      'releases': [
+        for (final (i, amount) in [(1, 30000), (2, 45000), (3, 60000)])
+          {
+            'ocid': 'ocds-b5fd17-$i',
+            'id': 'r$i',
+            'date': d,
+            'buyer': {'name': 'Example Borough Council'},
+            'tender': {'title': 'Council website support $i', 'mainProcurementCategory': 'services'},
+            'awards': [
+              {'status': 'active', 'date': d, 'value': {'amount': amount, 'currency': 'GBP'}, 'suppliers': [{'name': 'Example Web Ltd'}]},
+            ],
+          },
+      ],
+    });
+    final store = CaseStore(CaseDb(NativeDatabase.memory()), _FakeFetcher(''), sourceHttp: _UkHttp(page));
+    addTearDown(store.db.close);
+    tester.view.physicalSize = const Size(1100, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: CaseAnalysisPage(state: AppState(), openStore: () async => store)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '網站維護');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('country:uk')));
+    await tester.pump();
+    final kw = tester.widget<TextField>(find.byKey(const ValueKey('case.localKeywords'))).controller!.text;
+    expect(kw, contains('website'));
+    expect(kw, contains('maintenance'));
+    await tester.tap(find.text(tr('case.data.run', {'m': '12'})));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    await tester.pumpAndSettle();
+    expect(find.text('£45,000'), findsWidgets); // 中位數
+    expect(find.textContaining('Example Web Ltd'), findsWidgets);
+    expect(find.text(tr('case.src.uk')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }
 
 class _FakeFetcher implements DataFetcher {
@@ -109,4 +153,15 @@ class _FakeFetcher implements DataFetcher {
 
   @override
   Future<int?> size(Uri url) async => null;
+}
+
+class _UkHttp implements SourceHttp {
+  final String page;
+  _UkHttp(this.page);
+
+  @override
+  Future<String?> getText(Uri url, {void Function(Duration wait)? onWait}) async => url.host.contains('contractsfinder') ? page : jsonEncode({'releases': []});
+
+  @override
+  Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait}) async => null;
 }

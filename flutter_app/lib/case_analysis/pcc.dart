@@ -331,6 +331,12 @@ String shortTwd(double v, {bool cjk = true}) {
   return v.round().toString();
 }
 
+/// 任一幣別的簡短金額（例如 €12萬、£1.2M、¥3億）
+String shortMoney(double v, String currency, {bool cjk = true}) {
+  const sym = {'TWD': 'NT\$', 'GBP': '£', 'EUR': '€', 'JPY': '¥'};
+  return '${sym[currency] ?? ''}${shortTwd(v, cjk: cjk)}';
+}
+
 /// 明細抽樣：取離中位數最近的幾件（最能代表「一般行情」），不是只取最新的
 List<AwardCase> sampleForDetail(List<AwardCase> cases, double median, int n) {
   final s = [...cases]..sort((a, b) => (math.log(a.amount + 1) - math.log(median + 1)).abs().compareTo((math.log(b.amount + 1) - math.log(median + 1)).abs()));

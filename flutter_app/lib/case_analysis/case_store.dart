@@ -1,8 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'case_db.dart';
 import 'opendata.dart';
 import 'pcc.dart';
+import 'sources/es.dart';
+import 'sources/jp.dart';
+import 'sources/pt.dart';
+import 'sources/source.dart';
+import 'sources/uk.dart';
 
 /// 下載官方資料檔用：先問大小（HEAD），需要時才下載內容。找不到或連不上回傳 null。
 abstract class DataFetcher {
@@ -14,8 +20,9 @@ abstract class DataFetcher {
 class CaseStore {
   final CaseDb db;
   final DataFetcher fetcher;
+  final SourceHttp? sourceHttp; // 其他國家的資料（桌面版才有）
   final Duration pause;
-  CaseStore(this.db, this.fetcher, {this.pause = const Duration(milliseconds: 600)});
+  CaseStore(this.db, this.fetcher, {this.sourceHttp, this.pause = const Duration(milliseconds: 600)});
 
   /// 已經過了 45 天的期間不會再變：匯入過就不再下載
   static const settledAfter = Duration(days: 45);
@@ -55,6 +62,54 @@ class CaseStore {
     return downloaded;
   }
 
+  /// 其他國家的官方決標資料：已結束的期間匯入過就不再下載；最近的期間一天最多更新一次。
+  /// 回傳這次實際取得的單位數。取不到的單位（還沒公開、連不上）不記錄，下次再試。
+  /// [cancelled] 回傳 true 時停止（已匯入的資料留著）。
+  Future<int> syncSource(
+    List<AwardSource> sources,
+    int months, {
+    void Function(int done, int total)? onProgress,
+    void Function(int bytes)? onBytes,
+    void Function(Duration wait)? onWait,
+    bool Function()? cancelled,
+    DateTime? now,
+  }) async {
+    final base = sourceHttp;
+    if (base == null) return 0;
+    final http = _ProgressHttp(base, onBytes, onWait, cancelled);
+    final t = now ?? DateTime.now();
+    final work = [
+      for (final s in sources)
+        for (final u in s.units(t, months)) (s, u),
+    ];
+    var fetched = 0;
+    for (var i = 0; i < work.length; i++) {
+      if (cancelled?.call() ?? false) break;
+      onProgress?.call(i, work.length);
+      final (src, unit) = work[i];
+      final row = await db.datasetFileRow(unit.name);
+      if (row != null && unit.periodEnd.isBefore(t.subtract(src.settledAfter))) continue;
+      if (row != null && t.difference(row.checkedAt) < recheckEvery) continue;
+      var n = 0, any = false;
+      try {
+        await for (final b in src.fetch(unit, http)) {
+          any = true;
+          n += await db.importAwards(src.country, b);
+          if (cancelled?.call() ?? false) throw const SyncCancelled();
+        }
+      } on SyncCancelled {
+        break; // 這個單位沒做完：不記錄，下次再取
+      } catch (_) {
+        continue; // 下次再試
+      }
+      if (!any) continue;
+      await db.markDatasetFile(unit.name, records: n, checkedAt: t);
+      fetched++;
+    }
+    onProgress?.call(work.length, work.length);
+    return fetched;
+  }
+
   /// 即時查詢的結果存起來；之後交叉分析可沿用開過的公告明細
   Future<void> saveCollection(CaseCollection col) => db.saveCollection(col);
 
@@ -86,3 +141,47 @@ Future<Map<String, AwardDetail>> knownDetailsIn(OpenCaseStore open, Iterable<Str
     return const {};
   }
 }
+
+/// 回報下載進度與等待（西班牙的伺服器很慢、英國的 API 會要求等待，畫面上要看得到在做什麼），並在使用者按停止時中斷
+class _ProgressHttp implements SourceHttp {
+  final SourceHttp inner;
+  final void Function(int bytes)? bytes;
+  final void Function(Duration wait)? wait;
+  final bool Function()? cancelled;
+  _ProgressHttp(this.inner, this.bytes, this.wait, this.cancelled);
+
+  void _check() {
+    if (cancelled?.call() ?? false) throw const SyncCancelled();
+  }
+
+  @override
+  Future<String?> getText(Uri url, {void Function(Duration wait)? onWait}) {
+    _check();
+    return inner.getText(url, onWait: (d) {
+      wait?.call(d);
+      onWait?.call(d);
+    });
+  }
+
+  @override
+  Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait}) {
+    _check();
+    return inner.download(url, onBytes: (n) {
+      _check();
+      bytes?.call(n);
+      onBytes?.call(n);
+    }, onWait: (d) {
+      wait?.call(d);
+      onWait?.call(d);
+    });
+  }
+}
+
+/// 每個國家的官方來源
+List<AwardSource> sourcesFor(Country c) => switch (c) {
+      Country.tw => const [],
+      Country.uk => [UkSource(UkService.contractsFinder), UkSource(UkService.findATender)],
+      Country.es => [SpainSource()],
+      Country.pt => [PortugalSource()],
+      Country.jp => [JapanSource()],
+    };
