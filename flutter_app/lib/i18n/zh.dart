@@ -185,7 +185,6 @@ const Map<String, String> zhStrings = {
   'cx.medium': "中",
   'cx.high': "高",
   'model.1_5b': "Qwen2.5 1.5B · 輕量（約 1 GB）",
-  'model.3b': "Qwen2.5 3B · 平衡（約 2 GB）",
   'model.7b': "Qwen2.5 7B · 精準（約 5 GB）",
   'model.llama8b': "Llama 3.1 8B · 精準（約 5 GB）",
 

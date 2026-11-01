@@ -184,7 +184,6 @@ const Map<String, String> esStrings = {
   'cx.medium': "Media",
   'cx.high': "Alta",
   'model.1_5b': "Qwen2.5 1.5B · Ligero (unos 1 GB)",
-  'model.3b': "Qwen2.5 3B · Equilibrado (unos 2 GB)",
   'model.7b': "Qwen2.5 7B · Preciso (unos 5 GB)",
   'model.llama8b': "Llama 3.1 8B · Preciso (unos 5 GB)",
 

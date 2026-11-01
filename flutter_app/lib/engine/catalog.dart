@@ -45,7 +45,6 @@ class ModelSpec {
 const modelSpecs = <ModelSpec>[
   ModelSpec('Qwen2.5-0.5B-Instruct', 'Qwen/Qwen2.5-0.5B-Instruct-GGUF', 'qwen2.5-0.5b-instruct-q4_k_m.gguf', 491),
   ModelSpec('Qwen2.5-1.5B-Instruct', 'Qwen/Qwen2.5-1.5B-Instruct-GGUF', 'qwen2.5-1.5b-instruct-q4_k_m.gguf', 1117),
-  ModelSpec('Qwen2.5-3B-Instruct', 'Qwen/Qwen2.5-3B-Instruct-GGUF', 'qwen2.5-3b-instruct-q4_k_m.gguf', 2105),
   ModelSpec('Qwen2.5-7B-Instruct', 'bartowski/Qwen2.5-7B-Instruct-GGUF', 'Qwen2.5-7B-Instruct-Q4_K_M.gguf', 4683),
   ModelSpec('Llama-3.1-8B-Instruct', 'bartowski/Meta-Llama-3.1-8B-Instruct-GGUF', 'Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf', 4921),
   ModelSpec('cpu:qwen2.5-0.5b', 'Qwen/Qwen2.5-0.5B-Instruct-GGUF', 'qwen2.5-0.5b-instruct-q4_k_m.gguf', 491, gpu: false),

@@ -184,7 +184,6 @@ const Map<String, String> enStrings = {
   'cx.medium': "Medium",
   'cx.high': "High",
   'model.1_5b': "Qwen2.5 1.5B · Light (about 1 GB)",
-  'model.3b': "Qwen2.5 3B · Balanced (about 2 GB)",
   'model.7b': "Qwen2.5 7B · Accurate (about 5 GB)",
   'model.llama8b': "Llama 3.1 8B · Accurate (about 5 GB)",
 

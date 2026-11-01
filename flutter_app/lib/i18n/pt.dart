@@ -184,7 +184,6 @@ const Map<String, String> ptStrings = {
   'cx.medium': "Média",
   'cx.high': "Alta",
   'model.1_5b': "Qwen2.5 1.5B · Leve (cerca de 1 GB)",
-  'model.3b': "Qwen2.5 3B · Equilibrado (cerca de 2 GB)",
   'model.7b': "Qwen2.5 7B · Preciso (cerca de 5 GB)",
   'model.llama8b': "Llama 3.1 8B · Preciso (cerca de 5 GB)",
 

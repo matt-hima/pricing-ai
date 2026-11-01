@@ -54,7 +54,7 @@ void main() {
   });
 
   test('every model option in the app maps to a GGUF download', () {
-    for (final base in ['Qwen2.5-0.5B-Instruct', 'Qwen2.5-1.5B-Instruct', 'Qwen2.5-3B-Instruct', 'Qwen2.5-7B-Instruct', 'Llama-3.1-8B-Instruct', 'cpu:qwen2.5-0.5b', 'cpu:qwen2.5-1.5b']) {
+    for (final base in ['Qwen2.5-0.5B-Instruct', 'Qwen2.5-1.5B-Instruct', 'Qwen2.5-7B-Instruct', 'Llama-3.1-8B-Instruct', 'cpu:qwen2.5-0.5b', 'cpu:qwen2.5-1.5b']) {
       final m = modelSpecFor(base);
       expect(m, isNotNull, reason: base);
       expect(m!.url.host, 'huggingface.co');

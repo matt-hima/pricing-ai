@@ -135,7 +135,6 @@ class ModelOption {
 const modelOptions = [
   ModelOption('Qwen2.5-0.5B-Instruct', 'model.0_5b'),
   ModelOption('Qwen2.5-1.5B-Instruct', 'model.1_5b'),
-  ModelOption('Qwen2.5-3B-Instruct', 'model.3b'),
   ModelOption('Qwen2.5-7B-Instruct', 'model.7b'),
   ModelOption('Llama-3.1-8B-Instruct', 'model.llama8b'),
   ModelOption('cpu:qwen2.5-0.5b', 'model.cpu05'),
