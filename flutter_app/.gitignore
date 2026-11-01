@@ -46,3 +46,6 @@ app.*.map.json
 
 # Firebase CLI upload cache
 .firebase/
+
+# 本機建置的安裝檔（太大，不進 git；上傳到公開的下載位置）
+dist/

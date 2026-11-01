@@ -137,11 +137,21 @@ T = {
 
 # ===== 下載優先（像 VPN 軟體的官網）：主要動作是下載 Mac / Windows App，網頁版是次要選項 =====
 VERSION = "0.1.0"
-# 安裝檔網址：填好就是直接下載；空字串 = 還沒公開，按鈕改成「搶先使用」並打開聯絡表單
-DOWNLOADS = {"mac": "", "win": ""}
+# 安裝檔的公開下載網址（Firebase 免費方案不允許放 .dmg / .exe，所以安裝檔放在別處，例如公開的 GitHub Releases）。
+# 填好就是直接下載；空字串 = 還沒公開，按鈕改成「搶先使用」並打開聯絡表單。
+RELEASES = "https://github.com/matt-hima/pricing-ai-releases/releases/latest/download"  # 公開的 GitHub Releases（只放安裝檔）
+HOSTED_URLS = {"mac": f"{RELEASES}/PricingAI-mac.dmg", "win": ""}
+# 本機建好的安裝檔（dist/，不進 git）只用來在按鈕上顯示檔案大小
+DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dist")
+INSTALLERS = {"mac": f"PricingAI-{VERSION}-mac.dmg", "win": f"PricingAI-{VERSION}-windows.exe"}
+DOWNLOADS = dict(HOSTED_URLS)
+SIZES = {k: (f"{os.path.getsize(os.path.join(DIST, f)) / 1e6:.0f} MB" if os.path.exists(os.path.join(DIST, f)) else "") for k, f in INSTALLERS.items()}
+# Mac 版還沒有 Apple Developer ID 簽章與公證：第一次打開會被 macOS 擋下，頁面上說明「仍要打開」
+MAC_SIGNED = False
 
 D = {
 "en": dict(
+  mac_unsigned="First launch: macOS may say it cannot verify the developer. Open System Settings → Privacy & Security and click Open Anyway (only once).",
   nav="Download", badges=["Free download", "AI runs on your own computer", "No account needed"],
   mac="Download for macOS", win="Download for Windows", any="Download the app",
   early_mac="Get the Mac app", early_win="Get the Windows app", early_any="Get early access",
@@ -160,6 +170,7 @@ D = {
   faq_more=[("What is the difference between the app and the browser version?", "The desktop app adds local AI, government case analysis, competitor lookups and one-click deploy. The browser version is free and needs no install, but has no AI."), ("Chrome offers to install Pricing AI. Is that the app?", "No. Chrome installs the browser version as a shortcut called Pricing AI Web. For AI and case analysis, download the Mac or Windows app from this page.")],
   mock=["Service pricing", "Site builder", "Project estimate", "Case analysis"], mock_stats=[("Median award", "NT$982,500"), ("Middle 50%", "NT$426K – 1.71M"), ("Your quote", "Low end")]),
 "zh": dict(
+  mac_unsigned="第一次打開：macOS 可能會說無法驗證開發者。請到「系統設定 → 隱私權與安全性」按「仍要打開」（只需一次）。",
   nav="下載", badges=["免費下載", "AI 在你的電腦上執行", "免註冊帳號"],
   mac="下載 macOS 版", win="下載 Windows 版", any="下載 App",
   early_mac="取得 Mac 版", early_win="取得 Windows 版", early_any="搶先使用",
@@ -178,6 +189,7 @@ D = {
   faq_more=[("桌面 App 和網頁版有什麼不同？", "桌面 App 多了本機 AI、政府標案分析、競爭對手查詢與一鍵部署。網頁版免費、免安裝，但沒有 AI。"), ("Chrome 提示可以「安裝」Pricing AI，那是桌面 App 嗎？", "不是。Chrome 安裝的是網頁版的捷徑（名稱為 Pricing AI Web）。要使用 AI 與標案分析，請從這個網頁下載 Mac 或 Windows App。")],
   mock=["服務定價", "網站建置", "專案估價", "案件分析"], mock_stats=[("決標金額中位數", "NT$982,500"), ("中間 50%", "NT$42.6萬 – 171萬"), ("你的報價", "低價區")]),
 "ja": dict(
+  mac_unsigned="初回起動時：macOS が「開発元を確認できません」と表示する場合があります。「システム設定 → プライバシーとセキュリティ」で「このまま開く」を押してください（初回のみ）。",
   nav="ダウンロード", badges=["無料ダウンロード", "AIは自分のパソコンで動作", "アカウント登録不要"],
   mac="macOS版をダウンロード", win="Windows版をダウンロード", any="アプリをダウンロード",
   early_mac="Mac版を入手", early_win="Windows版を入手", early_any="先行利用を申し込む",
@@ -196,6 +208,7 @@ D = {
   faq_more=[("デスクトップアプリとブラウザ版の違いは？", "デスクトップアプリには、ローカルAI、政府調達の案件分析、競合企業の調査、ワンクリック公開があります。ブラウザ版は無料でインストール不要ですが、AIはありません。"), ("Chromeが Pricing AI の「インストール」を勧めてきます。これはアプリですか？", "いいえ。Chromeがインストールするのはブラウザ版のショートカット（Pricing AI Web）です。AIや案件分析を使うには、このページからMacまたはWindowsのアプリをダウンロードしてください。")],
   mock=["サービス価格", "サイト作成", "開発の見積もり", "案件分析"], mock_stats=[("落札金額の中央値", "NT$982,500"), ("中間50%", "NT$42.6萬 – 171萬"), ("あなたの見積もり", "低価格帯")]),
 "pt": dict(
+  mac_unsigned="Primeira abertura: o macOS pode dizer que não consegue verificar o desenvolvedor. Abra Ajustes do Sistema → Privacidade e Segurança e clique em Abrir Mesmo Assim (só uma vez).",
   nav="Baixar", badges=["Download gratuito", "A IA roda no seu computador", "Sem cadastro"],
   mac="Baixar para macOS", win="Baixar para Windows", any="Baixar o app",
   early_mac="Obter o app para Mac", early_win="Obter o app para Windows", early_any="Pedir acesso antecipado",
@@ -214,6 +227,7 @@ D = {
   faq_more=[("Qual a diferença entre o app e a versão do navegador?", "O app desktop acrescenta IA local, análise de licitações, consulta de concorrentes e publicação com um clique. A versão do navegador é gratuita e sem instalação, mas não tem IA."), ("O Chrome oferece instalar o Pricing AI. É o app?", "Não. O Chrome instala a versão do navegador como atalho (Pricing AI Web). Para IA e análise de licitações, baixe o app para Mac ou Windows nesta página.")],
   mock=["Preços", "Criar site", "Orçamento", "Licitações"], mock_stats=[("Mediana", "NT$982,500"), ("50% centrais", "NT$426K – 1.71M"), ("Seu orçamento", "Faixa baixa")]),
 "es": dict(
+  mac_unsigned="Primera apertura: macOS puede decir que no puede verificar al desarrollador. Abre Ajustes del Sistema → Privacidad y seguridad y pulsa Abrir igualmente (solo una vez).",
   nav="Descargar", badges=["Descarga gratuita", "La IA funciona en tu ordenador", "Sin cuenta"],
   mac="Descargar para macOS", win="Descargar para Windows", any="Descargar la app",
   early_mac="Obtener la app para Mac", early_win="Obtener la app para Windows", early_any="Pedir acceso anticipado",
@@ -270,10 +284,13 @@ def page(code):
     laptop = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10H3V6a1 1 0 0 1 1-1zm1 2v7h14V7zM1 17h22v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z"/></svg>'
     desktop = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6z"/></svg>'
     globe = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8 8 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3a15.7 15.7 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.4-3.6A15.7 15.7 0 0 0 8.1 8zM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h3a8 8 0 0 1-4.4 3.6zM16.3 14a16.5 16.5 0 0 0 0-4h3.4a8 8 0 0 1 0 4z"/></svg>'
+    def note(os_):
+        return f'<p class="unsigned">{e(d["mac_unsigned"])}</p>' if os_ == "mac" and DOWNLOADS["mac"] and not MAC_SIGNED else ""
     def platform(os_, card, icon):
         name, req, ext = card
         return (f'<article class="plat" id="plat-{os_}"><div class="pi">{icon}</div><h3>{e(name)}</h3><p>{e(req)}</p>'
-                f'<a class="btn solid dl-{os_}" href="{e(href(os_))}"{early}>{e(label(os_))}{"" if not DOWNLOADS[os_] else f" <small>{e(ext)}</small>"}</a></article>')
+                f'<a class="btn solid dl-{os_}" href="{e(href(os_))}"{"" if DOWNLOADS[os_] else ' data-early="1"'}{" download" if DOWNLOADS[os_] else ""}>{e(label(os_))}{"" if not DOWNLOADS[os_] else f" <small>{e(ext)}{' · ' + SIZES[os_] if SIZES[os_] else ''}</small>"}</a>'
+                f'{note(os_)}</article>')
     wname, wdesc, wbtn = d["web_card"]
     cmp_rows = "".join(f'<tr><th scope="row">{e(f)}</th><td class="{"y" if a_ else "n"}">{check if a_ else cross}<span class="vh">{"✓" if a_ else "—"}</span></td><td class="{"y" if w_ else "n"}">{check if w_ else cross}<span class="vh">{"✓" if w_ else "—"}</span></td></tr>' for f, a_, w_ in d["cmp"])
     req = "".join(f'<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>' for k, v in d["req"])
@@ -377,7 +394,7 @@ h1{font-size:clamp(30px,5vw,50px);line-height:1.15;margin:0 0 16px}.lead{font-si
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 24px;border-radius:99px;border:2px solid currentColor;font:inherit;font-weight:700;text-decoration:none;cursor:pointer;background:transparent;color:inherit;text-align:center}
 .btn small{font-weight:400;opacity:.8}
 .btn.primary{background:#fff;color:#1d2f4a;border-color:#fff}.btn.big{font-size:19px;padding:15px 34px;min-height:58px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-.btn.solid{background:var(--acc);color:var(--onacc);border-color:var(--acc);width:100%}.form .btn.primary{background:var(--brand);color:var(--bg);border-color:var(--brand)}
+.btn.solid{background:var(--acc);color:var(--onacc);border-color:var(--acc);width:100%;flex-direction:column;gap:0;line-height:1.3}.btn.solid small{font-size:12px}.form .btn.primary{background:var(--brand);color:var(--bg);border-color:var(--brand)}
 .btn:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #f5a524;outline-offset:2px}
 .dlbox .meta{margin:12px 0 4px;font-size:14px;opacity:.85}.dlbox .alt{margin:0;font-size:14px}.dlbox .alt a{color:#fff}.dlbox .note{margin:8px 0 0;font-size:14px;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 12px}
 .mock{background:#0f1726;border:1px solid rgba(255,255,255,.18);border-radius:16px;box-shadow:0 30px 60px rgba(0,0,0,.35);overflow:hidden;transform:perspective(1200px) rotateY(-6deg)}
@@ -390,7 +407,7 @@ h2{font-size:clamp(24px,3.6vw,34px);line-height:1.25;margin:0 0 6px;color:var(--
 .plats{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr))}.plat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px}
 .plat h3{margin:0;font-size:20px}.plat p{margin:0 0 8px;color:var(--mut);flex:1}.plat .pi svg{width:40px;height:40px;fill:var(--acc)}.plat.web{border-style:dashed}.plat.web .pi svg{fill:var(--mut)}
 .plat.mine{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
-.early{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line))}
+.unsigned{margin:4px 0 0;font-size:13px;color:var(--mut);flex:0}.early{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line))}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--mut)}
 .grid .card:first-child{border-color:var(--acc)}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
