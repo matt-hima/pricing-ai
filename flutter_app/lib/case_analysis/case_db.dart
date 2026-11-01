@@ -7,12 +7,15 @@
 /// - 匯入紀錄：dataset_file（哪些官方資料檔匯入過）、search_total（即時查詢在網站上的總筆數）
 /// 提問方式同 Metabase：篩選（AwardFilter，相當於 segment）→ 量值（Metric）→ 分組（Dimension，時間以月為單位）。
 /// 官方資料檔讀進來就丟，不保留 XML；同一件案件只留一筆，新資料只更新既有的那筆。
+/// 其他國家（英國、西班牙、葡萄牙、日本）的官方決標資料也放在同一組表，以 country 區分；名稱另存一份比對用的
+/// 正規化文字（search：小寫、去重音、全形轉半形），關鍵字不受大小寫與重音影響。
 library;
 
 import 'package:drift/drift.dart';
 
 import 'opendata.dart' show DatasetAward;
 import 'pcc.dart';
+import 'sources/source.dart';
 
 part 'case_db.g.dart';
 
@@ -65,6 +68,8 @@ class FactAward extends Table {
   TextColumn get source => text()(); // 'dataset'（官方開放資料）/ 'live'（即時查詢）
   BoolColumn get hasDetail => boolean().withDefault(const Constant(false))(); // 開過公告明細（有完整投標廠商與委員）
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get country => text().withDefault(const Constant('tw'))(); // 維度：國家（幣別跟著國家）
+  TextColumn get search => text().nullable()(); // 比對用的名稱（正規化）
 
   @override
   Set<Column> get primaryKey => {caseKey};
@@ -123,7 +128,8 @@ class AwardFilter {
   final ProcCate cate;
   final DateTime? from, to;
   final String? source;
-  const AwardFilter({this.keywords = const [], this.cate = ProcCate.any, this.from, this.to, this.source});
+  final Country country;
+  const AwardFilter({this.keywords = const [], this.cate = ProcCate.any, this.from, this.to, this.source, this.country = Country.tw});
 }
 
 /// 分組維度
@@ -178,7 +184,7 @@ class CaseDb extends _$CaseDb {
   CaseDb(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -191,6 +197,14 @@ class CaseDb extends _$CaseDb {
           await customStatement('CREATE INDEX IF NOT EXISTS ix_award_url ON fact_award (url)');
           await customStatement('CREATE INDEX IF NOT EXISTS ix_bid_vendor ON fact_bid (vendor_id)');
           await customStatement('CREATE INDEX IF NOT EXISTS ix_review_reviewer ON fact_review (reviewer_id)');
+          await customStatement('CREATE INDEX IF NOT EXISTS ix_award_country ON fact_award (country, notice_date)');
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(factAward, factAward.country);
+            await m.addColumn(factAward, factAward.search);
+            await customStatement('CREATE INDEX IF NOT EXISTS ix_award_country ON fact_award (country, notice_date)');
+          }
         },
       );
 
@@ -275,6 +289,7 @@ class CaseDb extends _$CaseDb {
       source: Value(old?.source == 'dataset' || source == 'dataset' ? 'dataset' : 'live'),
       hasDetail: Value(complete || (old?.hasDetail ?? false)),
       updatedAt: Value(DateTime.now()),
+      search: Value(searchText(newer ? name : old.name, cjk: true)),
     );
     final unchanged = old != null &&
         !complete &&
@@ -322,6 +337,68 @@ class CaseDb extends _$CaseDb {
     return changed;
   }
 
+  /// 其他國家的官方決標資料：一批一個交易，同一件只留一筆；已有較新日期的資料不會被較舊的蓋掉。回傳寫入筆數。
+  Future<int> importAwards(Country country, List<SourceAward> awards) async {
+    if (_dimsLoaded == false) {
+      for (final a in await select(dimAgency).get()) {
+        _agencyIds[a.name] = a.id;
+      }
+      for (final v in await select(dimVendor).get()) {
+        _vendorIds[v.name] = v.id;
+      }
+      _dimsLoaded = true;
+    }
+    final now = DateTime.now();
+    await transaction(() async {
+      final rows = <FactAwardCompanion>[];
+      final bids = <FactBidCompanion>[];
+      for (final a in awards) {
+        if (a.name.isEmpty) continue;
+        final winnerIds = <int>[];
+        for (final (n, tax) in a.winners) {
+          final id = await _vendor(n, taxId: tax);
+          if (id != null && !winnerIds.contains(id)) winnerIds.add(id);
+        }
+        rows.add(FactAwardCompanion.insert(
+          caseKey: a.id,
+          caseNo: a.id.substring(a.id.indexOf(':') + 1),
+          name: a.name,
+          agencyId: await _agency(a.agency.isEmpty ? '—' : a.agency),
+          winnerId: Value(winnerIds.firstOrNull),
+          category: Value(a.category),
+          tenderMethod: Value(a.method),
+          awardWay: Value(a.awardWay),
+          amount: a.amount,
+          budget: Value(a.budget),
+          bidderCount: Value(a.bidders),
+          noticeDate: Value(a.date),
+          awardDate: Value(a.date),
+          url: Value(a.url),
+          source: 'dataset',
+          updatedAt: now,
+          country: Value(country.name),
+          search: Value(searchText(a.name, cjk: country.cjk)),
+        ));
+        for (final id in winnerIds) {
+          bids.add(FactBidCompanion.insert(caseKey: a.id, vendorId: id, won: true));
+        }
+      }
+      await batch((b) {
+        for (final r in rows) {
+          b.insert(
+            factAward,
+            r,
+            onConflict: DoUpdate<$FactAwardTable, FactAwardData>.withExcluded((old, excluded) => r, where: (old, excluded) => old.noticeDate.isNull() | old.noticeDate.isSmallerOrEqual(excluded.noticeDate)),
+          );
+        }
+        b.insertAll(factBid, bids, mode: InsertMode.insertOrReplace);
+      });
+    });
+    return awards.length;
+  }
+
+  bool _dimsLoaded = false;
+
   /// 即時查詢的結果：清單上的案件、打開過的公告明細（完整投標廠商與評選委員）、網站上的總筆數
   Future<void> saveCollection(CaseCollection col) async {
     final all = [...col.cases, for (final l in col.vendorCases.values) ...l];
@@ -366,13 +443,15 @@ class CaseDb extends _$CaseDb {
   /// 篩選條件 → SQL 的 WHERE（fact_award 的別名是 a）
   (String, List<Variable>) _where(AwardFilter f) {
     final parts = <String>[], vars = <Variable>[];
-    final ks = [for (final k in f.keywords) k.replaceAll(RegExp(r'\s+'), '')]..removeWhere((k) => k.isEmpty);
+    final ks = [for (final k in f.keywords) searchText(k, cjk: f.country.cjk)]..removeWhere((k) => k.isEmpty);
+    parts.add('a.country = ?');
+    vars.add(Variable<String>(f.country.name));
     if (ks.isNotEmpty) {
-      parts.add('(${ks.map((_) => r"a.name LIKE ? ESCAPE '\'").join(' OR ')})');
+      parts.add('(${ks.map((_) => r"COALESCE(a.search, a.name) LIKE ? ESCAPE '\'").join(' OR ')})');
       vars.addAll(ks.map((k) => Variable<String>('%${k.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_')}%')));
     }
     const cateName = {ProcCate.works: '工程類', ProcCate.goods: '財物類', ProcCate.services: '勞務類'};
-    if (f.cate != ProcCate.any) {
+    if (f.cate != ProcCate.any && f.country == Country.tw) {
       parts.add('a.category = ?');
       vars.add(Variable<String>(cateName[f.cate]!));
     }
@@ -438,7 +517,7 @@ class CaseDb extends _$CaseDb {
       Dimension.category => ('a.category', ''),
       Dimension.tenderMethod => ('a.tender_method', ''),
       Dimension.awardWay => ('a.award_way', ''),
-      Dimension.month => ("strftime('%Y-%m', a.notice_date, 'unixepoch')", ''),
+      Dimension.month => ("strftime('%Y-%m', a.notice_date, 'unixepoch', 'localtime')", ''), // 依當地時間分月（UTC 會把月初的資料算到上個月）
     };
     final value = switch (metric) { Metric.count => 'COUNT(*)', Metric.sum => 'SUM(a.amount)', Metric.average => 'AVG(a.amount)' };
     final order = dim == Dimension.month ? 'label' : 'value DESC, n DESC';

@@ -898,6 +898,27 @@ class $FactAwardTable extends FactAward
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('tw'),
+  );
+  static const VerificationMeta _searchMeta = const VerificationMeta('search');
+  @override
+  late final GeneratedColumn<String> search = GeneratedColumn<String>(
+    'search',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     caseKey,
@@ -918,6 +939,8 @@ class $FactAwardTable extends FactAward
     source,
     hasDetail,
     updatedAt,
+    country,
+    search,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1059,6 +1082,18 @@ class $FactAwardTable extends FactAward
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('search')) {
+      context.handle(
+        _searchMeta,
+        search.isAcceptableOrUnknown(data['search']!, _searchMeta),
+      );
+    }
     return context;
   }
 
@@ -1140,6 +1175,14 @@ class $FactAwardTable extends FactAward
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      )!,
+      search: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}search'],
+      ),
     );
   }
 
@@ -1168,6 +1211,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
   final String source;
   final bool hasDetail;
   final DateTime updatedAt;
+  final String country;
+  final String? search;
   const FactAwardData({
     required this.caseKey,
     required this.caseNo,
@@ -1187,6 +1232,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
     required this.source,
     required this.hasDetail,
     required this.updatedAt,
+    required this.country,
+    this.search,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1221,6 +1268,10 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
     map['source'] = Variable<String>(source);
     map['has_detail'] = Variable<bool>(hasDetail);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['country'] = Variable<String>(country);
+    if (!nullToAbsent || search != null) {
+      map['search'] = Variable<String>(search);
+    }
     return map;
   }
 
@@ -1256,6 +1307,10 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
       source: Value(source),
       hasDetail: Value(hasDetail),
       updatedAt: Value(updatedAt),
+      country: Value(country),
+      search: search == null && nullToAbsent
+          ? const Value.absent()
+          : Value(search),
     );
   }
 
@@ -1283,6 +1338,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
       source: serializer.fromJson<String>(json['source']),
       hasDetail: serializer.fromJson<bool>(json['hasDetail']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      country: serializer.fromJson<String>(json['country']),
+      search: serializer.fromJson<String?>(json['search']),
     );
   }
   @override
@@ -1307,6 +1364,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
       'source': serializer.toJson<String>(source),
       'hasDetail': serializer.toJson<bool>(hasDetail),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'country': serializer.toJson<String>(country),
+      'search': serializer.toJson<String?>(search),
     };
   }
 
@@ -1329,6 +1388,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
     String? source,
     bool? hasDetail,
     DateTime? updatedAt,
+    String? country,
+    Value<String?> search = const Value.absent(),
   }) => FactAwardData(
     caseKey: caseKey ?? this.caseKey,
     caseNo: caseNo ?? this.caseNo,
@@ -1348,6 +1409,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
     source: source ?? this.source,
     hasDetail: hasDetail ?? this.hasDetail,
     updatedAt: updatedAt ?? this.updatedAt,
+    country: country ?? this.country,
+    search: search.present ? search.value : this.search,
   );
   FactAwardData copyWithCompanion(FactAwardCompanion data) {
     return FactAwardData(
@@ -1377,6 +1440,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
       source: data.source.present ? data.source.value : this.source,
       hasDetail: data.hasDetail.present ? data.hasDetail.value : this.hasDetail,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      country: data.country.present ? data.country.value : this.country,
+      search: data.search.present ? data.search.value : this.search,
     );
   }
 
@@ -1400,7 +1465,9 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
           ..write('url: $url, ')
           ..write('source: $source, ')
           ..write('hasDetail: $hasDetail, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('country: $country, ')
+          ..write('search: $search')
           ..write(')'))
         .toString();
   }
@@ -1425,6 +1492,8 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
     source,
     hasDetail,
     updatedAt,
+    country,
+    search,
   );
   @override
   bool operator ==(Object other) =>
@@ -1447,7 +1516,9 @@ class FactAwardData extends DataClass implements Insertable<FactAwardData> {
           other.url == this.url &&
           other.source == this.source &&
           other.hasDetail == this.hasDetail &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.country == this.country &&
+          other.search == this.search);
 }
 
 class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
@@ -1469,6 +1540,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
   final Value<String> source;
   final Value<bool> hasDetail;
   final Value<DateTime> updatedAt;
+  final Value<String> country;
+  final Value<String?> search;
   final Value<int> rowid;
   const FactAwardCompanion({
     this.caseKey = const Value.absent(),
@@ -1489,6 +1562,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
     this.source = const Value.absent(),
     this.hasDetail = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.country = const Value.absent(),
+    this.search = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FactAwardCompanion.insert({
@@ -1510,6 +1585,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
     required String source,
     this.hasDetail = const Value.absent(),
     required DateTime updatedAt,
+    this.country = const Value.absent(),
+    this.search = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : caseKey = Value(caseKey),
        caseNo = Value(caseNo),
@@ -1537,6 +1614,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
     Expression<String>? source,
     Expression<bool>? hasDetail,
     Expression<DateTime>? updatedAt,
+    Expression<String>? country,
+    Expression<String>? search,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1558,6 +1637,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
       if (source != null) 'source': source,
       if (hasDetail != null) 'has_detail': hasDetail,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (country != null) 'country': country,
+      if (search != null) 'search': search,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1581,6 +1662,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
     Value<String>? source,
     Value<bool>? hasDetail,
     Value<DateTime>? updatedAt,
+    Value<String>? country,
+    Value<String?>? search,
     Value<int>? rowid,
   }) {
     return FactAwardCompanion(
@@ -1602,6 +1685,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
       source: source ?? this.source,
       hasDetail: hasDetail ?? this.hasDetail,
       updatedAt: updatedAt ?? this.updatedAt,
+      country: country ?? this.country,
+      search: search ?? this.search,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1663,6 +1748,12 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (search.present) {
+      map['search'] = Variable<String>(search.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1690,6 +1781,8 @@ class FactAwardCompanion extends UpdateCompanion<FactAwardData> {
           ..write('source: $source, ')
           ..write('hasDetail: $hasDetail, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('country: $country, ')
+          ..write('search: $search, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3681,6 +3774,8 @@ typedef $$FactAwardTableCreateCompanionBuilder =
       required String source,
       Value<bool> hasDetail,
       required DateTime updatedAt,
+      Value<String> country,
+      Value<String?> search,
       Value<int> rowid,
     });
 typedef $$FactAwardTableUpdateCompanionBuilder =
@@ -3703,6 +3798,8 @@ typedef $$FactAwardTableUpdateCompanionBuilder =
       Value<String> source,
       Value<bool> hasDetail,
       Value<DateTime> updatedAt,
+      Value<String> country,
+      Value<String?> search,
       Value<int> rowid,
     });
 
@@ -3865,6 +3962,16 @@ class $$FactAwardTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get search => $composableBuilder(
+    column: $table.search,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4054,6 +4161,16 @@ class $$FactAwardTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get search => $composableBuilder(
+    column: $table.search,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DimAgencyTableOrderingComposer get agencyId {
     final $$DimAgencyTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4165,6 +4282,12 @@ class $$FactAwardTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get search =>
+      $composableBuilder(column: $table.search, builder: (column) => column);
 
   $$DimAgencyTableAnnotationComposer get agencyId {
     final $$DimAgencyTableAnnotationComposer composer = $composerBuilder(
@@ -4314,6 +4437,8 @@ class $$FactAwardTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<bool> hasDetail = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String> country = const Value.absent(),
+                Value<String?> search = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FactAwardCompanion(
                 caseKey: caseKey,
@@ -4334,6 +4459,8 @@ class $$FactAwardTableTableManager
                 source: source,
                 hasDetail: hasDetail,
                 updatedAt: updatedAt,
+                country: country,
+                search: search,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4356,6 +4483,8 @@ class $$FactAwardTableTableManager
                 required String source,
                 Value<bool> hasDetail = const Value.absent(),
                 required DateTime updatedAt,
+                Value<String> country = const Value.absent(),
+                Value<String?> search = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FactAwardCompanion.insert(
                 caseKey: caseKey,
@@ -4376,6 +4505,8 @@ class $$FactAwardTableTableManager
                 source: source,
                 hasDetail: hasDetail,
                 updatedAt: updatedAt,
+                country: country,
+                search: search,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
