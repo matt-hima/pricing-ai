@@ -5,7 +5,7 @@
 Pricing AI 協助小型服務業與軟體接案團隊有把握地定價：算出每項服務的真實成本、建立預約網站、估算軟體專案，並查出類似的政府標案實際以多少錢決標。AI 在你自己的電腦上執行，資料不會送到雲端 AI。
 
 - 官網：https://pricingai.minervaelectronics.com/zh/
-- 下載 macOS 版：https://github.com/matt-hima/pricing-ai-releases/releases/latest
+- 下載 macOS 版：https://github.com/matt-hima/pricing-ai/releases/latest
 - 網頁版（沒有 AI、免安裝）：https://pricingai.minervaelectronics.com/app/?lang=zh
 
 ## 功能
@@ -68,7 +68,7 @@ App 有四個分頁。
 
 ## 下載與安裝（macOS）
 
-1. 從[最新版本](https://github.com/matt-hima/pricing-ai-releases/releases/latest)下載 `PricingAI-mac.dmg`。
+1. 從[最新版本](https://github.com/matt-hima/pricing-ai/releases/latest)下載 `PricingAI-mac.dmg`。
 2. 打開 .dmg，把 **Pricing AI** 拖到「**應用程式**」。
 3. 啟動 Pricing AI。這個版本還沒有 Apple Developer ID 簽章，第一次打開時 macOS 可能會說無法驗證開發者：請到「**系統設定 → 隱私權與安全性**」按「**仍要打開**」（只需一次）。
 4. 第一次使用 AI 時會下載一次 AI 引擎與模型（0.5–5 GB），之後 AI 就在你的電腦上執行。

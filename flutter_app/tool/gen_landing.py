@@ -139,7 +139,8 @@ T = {
 VERSION = "0.1.0"
 # 安裝檔的公開下載網址（Firebase 免費方案不允許放 .dmg / .exe，所以安裝檔放在別處，例如公開的 GitHub Releases）。
 # 填好就是直接下載；空字串 = 還沒公開，按鈕改成「搶先使用」並打開聯絡表單。
-RELEASES = "https://github.com/matt-hima/pricing-ai-releases/releases/latest/download"  # 公開的 GitHub Releases（只放安裝檔）
+REPO_URL = "https://github.com/matt-hima/pricing-ai"  # 公開的原始碼（Apache-2.0）與安裝檔（Releases）
+RELEASES = f"{REPO_URL}/releases/latest/download"
 HOSTED_URLS = {"mac": f"{RELEASES}/PricingAI-mac.dmg", "win": ""}
 # 本機建好的安裝檔（dist/，不進 git）只用來在按鈕上顯示檔案大小
 DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dist")
@@ -151,6 +152,12 @@ MAC_SIGNED = False
 
 D = {
 "en": dict(
+  gh="GitHub",
+  oss="Pricing AI is open source under the Apache License 2.0.",
+  src="Source code on GitHub",
+  rel="All releases",
+  foot_src="Source code (Apache-2.0)",
+  faq_oss=("Is Pricing AI open source?", "Yes. The code is on GitHub under the Apache License 2.0, together with the installers in Releases and the licenses of all third-party libraries."),
   mac_unsigned="First launch: macOS may say it cannot verify the developer. Open System Settings → Privacy & Security and click Open Anyway (only once).",
   nav="Download", badges=["Free download", "AI runs on your own computer", "No account needed"],
   mac="Download for macOS", win="Download for Windows", any="Download the app",
@@ -170,6 +177,12 @@ D = {
   faq_more=[("What is the difference between the app and the browser version?", "The desktop app adds local AI, government case analysis, competitor lookups and one-click deploy. The browser version is free and needs no install, but has no AI."), ("Chrome offers to install Pricing AI. Is that the app?", "No. Chrome installs the browser version as a shortcut called Pricing AI Web. For AI and case analysis, download the Mac or Windows app from this page.")],
   mock=["Service pricing", "Site builder", "Project estimate", "Case analysis"], mock_stats=[("Median award", "NT$982,500"), ("Middle 50%", "NT$426K – 1.71M"), ("Your quote", "Low end")]),
 "zh": dict(
+  gh="GitHub",
+  oss="Pricing AI 以 Apache License 2.0 開放原始碼。",
+  src="GitHub 上的原始碼",
+  rel="所有版本",
+  foot_src="原始碼（Apache-2.0）",
+  faq_oss=("Pricing AI 是開放原始碼嗎？", "是。程式碼以 Apache License 2.0 公開在 GitHub，安裝檔放在 Releases，所有第三方程式庫的授權也都列在裡面。"),
   mac_unsigned="第一次打開：macOS 可能會說無法驗證開發者。請到「系統設定 → 隱私權與安全性」按「仍要打開」（只需一次）。",
   nav="下載", badges=["免費下載", "AI 在你的電腦上執行", "免註冊帳號"],
   mac="下載 macOS 版", win="下載 Windows 版", any="下載 App",
@@ -189,6 +202,12 @@ D = {
   faq_more=[("桌面 App 和網頁版有什麼不同？", "桌面 App 多了本機 AI、政府標案分析、競爭對手查詢與一鍵部署。網頁版免費、免安裝，但沒有 AI。"), ("Chrome 提示可以「安裝」Pricing AI，那是桌面 App 嗎？", "不是。Chrome 安裝的是網頁版的捷徑（名稱為 Pricing AI Web）。要使用 AI 與標案分析，請從這個網頁下載 Mac 或 Windows App。")],
   mock=["服務定價", "網站建置", "專案估價", "案件分析"], mock_stats=[("決標金額中位數", "NT$982,500"), ("中間 50%", "NT$42.6萬 – 171萬"), ("你的報價", "低價區")]),
 "ja": dict(
+  gh="GitHub",
+  oss="Pricing AI は Apache License 2.0 のオープンソースです。",
+  src="GitHub のソースコード",
+  rel="すべてのリリース",
+  foot_src="ソースコード（Apache-2.0）",
+  faq_oss=("Pricing AI はオープンソースですか？", "はい。コードは Apache License 2.0 で GitHub に公開しており、インストーラーは Releases に、すべての第三者ライブラリのライセンスもそこに掲載しています。"),
   mac_unsigned="初回起動時：macOS が「開発元を確認できません」と表示する場合があります。「システム設定 → プライバシーとセキュリティ」で「このまま開く」を押してください（初回のみ）。",
   nav="ダウンロード", badges=["無料ダウンロード", "AIは自分のパソコンで動作", "アカウント登録不要"],
   mac="macOS版をダウンロード", win="Windows版をダウンロード", any="アプリをダウンロード",
@@ -208,6 +227,12 @@ D = {
   faq_more=[("デスクトップアプリとブラウザ版の違いは？", "デスクトップアプリには、ローカルAI、政府調達の案件分析、競合企業の調査、ワンクリック公開があります。ブラウザ版は無料でインストール不要ですが、AIはありません。"), ("Chromeが Pricing AI の「インストール」を勧めてきます。これはアプリですか？", "いいえ。Chromeがインストールするのはブラウザ版のショートカット（Pricing AI Web）です。AIや案件分析を使うには、このページからMacまたはWindowsのアプリをダウンロードしてください。")],
   mock=["サービス価格", "サイト作成", "開発の見積もり", "案件分析"], mock_stats=[("落札金額の中央値", "NT$982,500"), ("中間50%", "NT$42.6萬 – 171萬"), ("あなたの見積もり", "低価格帯")]),
 "pt": dict(
+  gh="GitHub",
+  oss="O Pricing AI é código aberto sob a Apache License 2.0.",
+  src="Código-fonte no GitHub",
+  rel="Todas as versões",
+  foot_src="Código-fonte (Apache-2.0)",
+  faq_oss=("O Pricing AI é código aberto?", "Sim. O código está no GitHub sob a Apache License 2.0, junto com os instaladores em Releases e as licenças de todas as bibliotecas de terceiros."),
   mac_unsigned="Primeira abertura: o macOS pode dizer que não consegue verificar o desenvolvedor. Abra Ajustes do Sistema → Privacidade e Segurança e clique em Abrir Mesmo Assim (só uma vez).",
   nav="Baixar", badges=["Download gratuito", "A IA roda no seu computador", "Sem cadastro"],
   mac="Baixar para macOS", win="Baixar para Windows", any="Baixar o app",
@@ -227,6 +252,12 @@ D = {
   faq_more=[("Qual a diferença entre o app e a versão do navegador?", "O app desktop acrescenta IA local, análise de licitações, consulta de concorrentes e publicação com um clique. A versão do navegador é gratuita e sem instalação, mas não tem IA."), ("O Chrome oferece instalar o Pricing AI. É o app?", "Não. O Chrome instala a versão do navegador como atalho (Pricing AI Web). Para IA e análise de licitações, baixe o app para Mac ou Windows nesta página.")],
   mock=["Preços", "Criar site", "Orçamento", "Licitações"], mock_stats=[("Mediana", "NT$982,500"), ("50% centrais", "NT$426K – 1.71M"), ("Seu orçamento", "Faixa baixa")]),
 "es": dict(
+  gh="GitHub",
+  oss="Pricing AI es código abierto bajo la Apache License 2.0.",
+  src="Código fuente en GitHub",
+  rel="Todas las versiones",
+  foot_src="Código fuente (Apache-2.0)",
+  faq_oss=("¿Pricing AI es de código abierto?", "Sí. El código está en GitHub bajo la Apache License 2.0, junto con los instaladores en Releases y las licencias de todas las bibliotecas de terceros."),
   mac_unsigned="Primera apertura: macOS puede decir que no puede verificar al desarrollador. Abre Ajustes del Sistema → Privacidad y seguridad y pulsa Abrir igualmente (solo una vez).",
   nav="Descargar", badges=["Descarga gratuita", "La IA funciona en tu ordenador", "Sin cuenta"],
   mac="Descargar para macOS", win="Descargar para Windows", any="Descargar la app",
@@ -256,16 +287,16 @@ def page(code):
     alts = "\n".join(f'<link rel="alternate" hreflang="{LANGS[c][2]}" href="{ORIGIN}{LANGS[c][0]}">' for c in LANGS) + f'\n<link rel="alternate" hreflang="x-default" href="{ORIGIN}/">'
     langnav = "".join(f'<a href="{LANGS[c][0]}" hreflang="{LANGS[c][2]}" lang="{LANGS[c][1]}"{" aria-current=\"page\"" if c == code else ""}>{LANGS[c][4]}</a>' for c in LANGS)
     ld = [
-      {"@context": "https://schema.org", "@type": "Organization", "name": "Pricing AI", "url": ORIGIN + "/", "logo": ORIGIN + "/logo.svg"},
+      {"@context": "https://schema.org", "@type": "Organization", "name": "Pricing AI", "url": ORIGIN + "/", "logo": ORIGIN + "/logo.svg", "sameAs": [REPO_URL]},
       {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Pricing AI", "url": url, "description": t["desc"], "applicationCategory": "BusinessApplication", "operatingSystem": "macOS, Windows, Web", "softwareVersion": VERSION, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "downloadUrl": url + "#download", "inLanguage": hreflang},
-      {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in [*D[code]["faq_more"], *t["faq"]]]},
+      {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in [*D[code]["faq_more"], D[code]["faq_oss"], *t["faq"]]]},
     ]
     ldjson = json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")
     d = D[code]
     feats = "".join(f'<article class="card"><h3>{e(h)}</h3><p>{e(p)}</p></article>' for h, p in [d["feat_case"], *t["feats"]])
     steps = "".join(f'<li><b>{e(h)}</b><span>{e(p)}</span></li>' for h, p in t["steps"])
     who = "".join(f"<li>{e(w)}</li>" for w in t["who"])
-    faqs = [*d["faq_more"], *t["faq"]]
+    faqs = [*d["faq_more"], d["faq_oss"], *t["faq"]]
     faq = "".join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in faqs)
     topics = "".join(f'<option value="{e(v)}"{" data-app=\"1\"" if v == "Other" else ""}>{e(l)}</option>' for v, l in t["topics"])
     nav = t["nav"]
@@ -283,6 +314,7 @@ def page(code):
     cross = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>'
     laptop = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10H3V6a1 1 0 0 1 1-1zm1 2v7h14V7zM1 17h22v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z"/></svg>'
     desktop = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6z"/></svg>'
+    code_icon = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 16.6 4.1 12l4.6-4.6L7.3 6 1.3 12l6 6zm6.6 0 4.6-4.6-4.6-4.6L16.7 6l6 6-6 6z"/></svg>'
     globe = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8 8 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h3a15.7 15.7 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.4-3.6A15.7 15.7 0 0 0 8.1 8zM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h3a8 8 0 0 1-4.4 3.6zM16.3 14a16.5 16.5 0 0 0 0-4h3.4a8 8 0 0 1 0 4z"/></svg>'
     def note(os_):
         return f'<p class="unsigned">{e(d["mac_unsigned"])}</p>' if os_ == "mac" and DOWNLOADS["mac"] and not MAC_SIGNED else ""
@@ -327,7 +359,7 @@ def page(code):
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap bar">
 <a class="brand" href="{path}" aria-label="Pricing AI"><img src="/logo.svg" alt="Pricing AI" width="168" height="44"></a>
-<nav aria-label="Main"><a href="#features">{e(nav[0])}</a><a href="#compare">{e(d['cmp_title'])}</a><a href="#faq">{e(nav[2])}</a><a href="#contact">{e(nav[3])}</a><a class="navdl" href="#download">{e(d['nav'])}</a></nav>
+<nav aria-label="Main"><a href="#features">{e(nav[0])}</a><a href="#compare">{e(d['cmp_title'])}</a><a href="#faq">{e(nav[2])}</a><a href="#contact">{e(nav[3])}</a><a class="navgh" href="{REPO_URL}" rel="noopener">{code_icon}{e(d['gh'])}</a><a class="navdl" href="#download">{e(d['nav'])}</a></nav>
 <nav class="langs" aria-label="Language">{langnav}</nav>
 </div></header>
 <main id="main">
@@ -349,6 +381,7 @@ def page(code):
 <div class="plats">{platform("mac", d["mac_card"], laptop)}{platform("win", d["win_card"], desktop)}
 <article class="plat web"><div class="pi">{globe}</div><h3>{e(wname)}</h3><p>{e(wdesc)}</p><a class="btn" href="{app}">{e(wbtn)}</a></article></div>
 {"" if released else f'<p class="early">{e(d["early_note"])}</p>'}
+<p class="oss">{code_icon}{e(d['oss'])} <a href="{REPO_URL}" rel="noopener">{e(d['src'])}</a> · <a href="{REPO_URL}/releases" rel="noopener">{e(d['rel'])}</a></p>
 <h2 class="mt">{e(d['i_title'])}</h2><ol class="steps">{isteps}</ol></div></section>
 <section id="features" class="sec alt"><div class="wrap"><h2>{e(t['f_title'])}</h2><p class="sub">{e(t['f_sub'])}</p><div class="grid">{feats}</div></div></section>
 <section id="compare" class="sec"><div class="wrap narrow"><h2>{e(d['cmp_title'])}</h2><p class="sub">{e(d['cmp_sub'])}</p>
@@ -369,7 +402,7 @@ def page(code):
 </form>
 <noscript><p>JavaScript is required to send the form.</p></noscript></div></section>
 </main>
-<footer class="foot"><div class="wrap"><p>© Pricing AI</p><p>{e(t['foot'])}</p></div></footer>
+<footer class="foot"><div class="wrap"><p>© Pricing AI · <a href="{REPO_URL}" rel="noopener">{e(d['foot_src'])}</a></p><p>{e(t['foot'])}</p></div></footer>
 <script src="/contact.js" defer></script>
 </body>
 </html>
@@ -407,7 +440,7 @@ h2{font-size:clamp(24px,3.6vw,34px);line-height:1.25;margin:0 0 6px;color:var(--
 .plats{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr))}.plat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px}
 .plat h3{margin:0;font-size:20px}.plat p{margin:0 0 8px;color:var(--mut);flex:1}.plat .pi svg{width:40px;height:40px;fill:var(--acc)}.plat.web{border-style:dashed}.plat.web .pi svg{fill:var(--mut)}
 .plat.mine{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
-.unsigned{margin:4px 0 0;font-size:13px;color:var(--mut);flex:0}.early{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line))}
+.unsigned{margin:4px 0 0;font-size:13px;color:var(--mut);flex:0}.ic{width:16px;height:16px;fill:currentColor;vertical-align:-3px;margin-right:4px}.oss{margin:16px 0 0;color:var(--mut)}.oss a,.foot a{color:var(--acc)}.early{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line))}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--mut)}
 .grid .card:first-child{border-color:var(--acc)}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}

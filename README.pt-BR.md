@@ -5,7 +5,7 @@
 O Pricing AI ajuda pequenos negócios de serviços e estúdios de software a definir preços com segurança: calcula quanto cada serviço realmente custa, cria um site de reservas, faz orçamentos de projetos de software e mostra por quanto contratos públicos semelhantes em Taiwan foram adjudicados. A IA roda no seu próprio computador: seus dados não são enviados a uma IA na nuvem.
 
 - Site: https://pricingai.minervaelectronics.com/pt/
-- Baixar para macOS: https://github.com/matt-hima/pricing-ai-releases/releases/latest
+- Baixar para macOS: https://github.com/matt-hima/pricing-ai/releases/latest
 - Versão do navegador (sem IA, sem instalação): https://pricingai.minervaelectronics.com/app/?lang=pt
 
 ## Recursos
@@ -68,7 +68,7 @@ A versão do navegador, inclusive o atalho que o Chrome oferece instalar ("Prici
 
 ## Baixar e instalar (macOS)
 
-1. Baixe `PricingAI-mac.dmg` da [versão mais recente](https://github.com/matt-hima/pricing-ai-releases/releases/latest).
+1. Baixe `PricingAI-mac.dmg` da [versão mais recente](https://github.com/matt-hima/pricing-ai/releases/latest).
 2. Abra o .dmg e arraste o **Pricing AI** para **Aplicativos**.
 3. Abra o Pricing AI. Esta versão ainda não é assinada com um Apple Developer ID, então na primeira vez o macOS pode dizer que não consegue verificar o desenvolvedor: abra **Ajustes do Sistema → Privacidade e Segurança** e clique em **Abrir Mesmo Assim** (só uma vez).
 4. A primeira tarefa de IA baixa o motor e um modelo uma vez (0,5–5 GB). Depois, a IA roda no seu computador.
