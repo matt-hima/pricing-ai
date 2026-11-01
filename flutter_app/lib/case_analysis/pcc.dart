@@ -485,3 +485,6 @@ List<ReviewerRecord> reviewerCrossRef(Map<String, AwardDetail> details) {
   });
   return m.values.toList()..sort((a, b) => b.caseUrls.length != a.caseUrls.length ? b.caseUrls.length.compareTo(a.caseUrls.length) : a.name.compareTo(b.name));
 }
+
+/// 採購網的「驗證碼檢核」頁（防止程式大量查詢）：這時候不是決標公告。App 不會自動通過驗證，只會停下來交給使用者。
+bool isVerificationPage(String html) => html.contains('驗證碼檢核') && !html.contains('投標廠商家數');

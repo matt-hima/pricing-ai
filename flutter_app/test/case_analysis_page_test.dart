@@ -55,7 +55,7 @@ void main() {
     expect(queries.single.url.queryParameters['tenderName'], '網站');
     // 相關查詢字預設勾選前 3 個，一起查
     expect(queries.single.keywords, ['網站', '網頁', '官網', '入口網']);
-    expect(autos.single, (true, 10, 3)); // 「分析」直接執行交叉分析：自動點開 10 件、查 3 家競爭對手
+    expect(autos.single, (true, 5, 3)); // 「分析」直接執行交叉分析：自動點開 5 件、查 3 家競爭對手
     expect(find.text(tr('case.partial', {'n': '50', 'total': '178'})), findsOneWidget);
     expect(find.text(tr('case.s.median')), findsOneWidget);
 

@@ -11,6 +11,7 @@ bool get caseBrowserAvailable => !kIsWeb;
 
 /// 每查完一頁結果停一下再查下一個（像人一樣，不連續快速打網站）
 const _nextSearchDelay = Duration(seconds: 3);
+const _nextNoticeDelay = Duration(seconds: 6);
 
 /// 查詢條件：一個或多個標案名稱關鍵字，或一家廠商（得標 + 投標兩個查詢）
 class CaseQuery {
@@ -89,6 +90,8 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   bool waiting = false;
   _Stage stage = _Stage.searches;
   final Map<_Stage, (int, int)> _span = {}; // 每個階段在 queue 裡的範圍（開始, 結束）
+  /// 採購網要求「驗證碼檢核」：停止自動點開公告（尊重網站防止大量查詢的檢查），交給使用者
+  bool verification = false;
 
   bool get collecting => widget.query != null;
 
@@ -109,18 +112,37 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     if (!collecting || url == null || !url.host.endsWith(pccHost)) return;
     try {
       final html = await c.getHtml();
-      if (html != null && col.addPage(url.toString(), html) && mounted) setState(() {});
-    } catch (_) {} // 讀不到就算了，使用者可以繼續瀏覽
+      if (html != null && isVerificationPage(html)) {
+        debugPrint('case browser: the site asked for verification; automatic opening of notices stopped');
+        if (mounted) setState(() => verification = true);
+        _skipNotices();
+      }
+      final added = html != null && col.addPage(url.toString(), html);
+      debugPrint('case browser: read ${url.path.split('/').last} ${added ? 'ok' : 'nothing new'} (${html?.length ?? 0} chars) · cases ${col.cases.length}, notices ${col.details.length}');
+      if (added && mounted) setState(() {});
+    } catch (e) {
+      debugPrint('case browser: could not read $url: $e'); // 讀不到就算了，使用者可以繼續瀏覽
+    }
     // 這一頁是佇列裡剛打開的那個：停一下再自動打開下一個（使用者這段時間自己換頁就不動）
     final i = next - 1;
     if (i < 0 || i >= queue.length || !_same(url.toString(), queue[i])) return;
     if (next >= queue.length && !_plan()) return _finish();
     final loadsNow = _loads;
     setState(() => waiting = true);
-    await Future<void>.delayed(_nextSearchDelay);
+    // 決標公告之間停久一點：採購網對連續打開公告比較敏感
+    await Future<void>.delayed(stage == _Stage.details ? _nextNoticeDelay : _nextSearchDelay);
     if (!mounted) return;
     setState(() => waiting = false);
     if (_loads == loadsNow) _runNext();
+  }
+
+  /// 網站要求驗證：佇列裡還沒打開的決標公告全部拿掉（查廠商紀錄的清單頁不受影響，繼續）
+  void _skipNotices() {
+    for (var i = queue.length - 1; i >= next; i--) {
+      if (!queue[i].path.contains('readTenderAgent')) queue.removeAt(i);
+    }
+    final sp = _span[_Stage.details];
+    if (sp != null) _span[_Stage.details] = (sp.$1, sp.$1 + (next - sp.$1).clamp(0, sp.$2 - sp.$1));
   }
 
   /// 目前階段做完了：排下一個階段要打開的頁面。有排到東西就回傳 true。
@@ -130,7 +152,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
       switch (stage) {
         case _Stage.searches:
           stage = _Stage.details;
-          queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
+          if (!verification) queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
         case _Stage.details:
           stage = _Stage.rivals;
           for (final r in pickRivalsToLookUp(col, widget.autoRivals)) {
@@ -218,7 +240,14 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
                 Flexible(child: Text(host.isEmpty ? start.host : host, style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
                 const Spacer(),
                 if (collecting) ...[
-                  Text(tr('case.browser.collected', {'n': '${col.cases.length}', 'd': '${col.details.length}'}), style: t.labelLarge),
+                  // 依廠商查紀錄時，案件放在 vendorCases（不算進關鍵字的案件），計數也要算它們
+                  Text(
+                    tr('case.browser.collected', {
+                      'n': '${col.cases.isNotEmpty ? col.cases.length : col.vendorCases.values.fold<int>(0, (n, l) => n + l.length)}',
+                      'd': '${col.details.length}',
+                    }),
+                    style: t.labelLarge,
+                  ),
                   const SizedBox(width: 12),
                 ],
                 TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('mkt.close'))),
@@ -273,6 +302,18 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
       width: 290,
       decoration: BoxDecoration(border: Border(left: BorderSide(color: cs.outlineVariant))),
       child: ListView(padding: const EdgeInsets.all(14), children: [
+        if (verification) ...[
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(10)),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.verified_user_outlined, size: 18, color: cs.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(child: Text(tr('case.browser.verification'), style: t.bodySmall?.copyWith(color: cs.onErrorContainer))),
+            ]),
+          ),
+          const SizedBox(height: 12),
+        ],
         Text(tr('case.browser.hint'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
         const SizedBox(height: 12),
         // 查詢進度：每個關鍵字（或得標 / 投標）查到幾件

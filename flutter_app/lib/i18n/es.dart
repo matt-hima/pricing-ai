@@ -867,4 +867,5 @@ const Map<String, String> esStrings = {
   'case.rev.cases': "Evaluó {n} (asistió a {a})",
   'case.rev.winners': "Ganadores: {w}",
   'case.rev.note': "Los miembros del comité se publican tras la adjudicación según la Ley de Compras Públicas de Taiwán, solo por transparencia. Está prohibido contactar o presionar a los miembros; no uses esta información para ello.",
+  'case.browser.verification': "El sitio de compras pidió una verificación (para impedir consultas automáticas masivas). La app no supera verificaciones por ti, así que dejó de abrir avisos automáticamente; los demás resultados se traen igual. Para ver más avisos, completa la verificación a la izquierda y abre los casos a mano.",
 };

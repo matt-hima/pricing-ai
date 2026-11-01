@@ -72,7 +72,7 @@ class _CaseHistoryDialogState extends State<CaseHistoryDialog> {
     });
     try {
       final kw = expandKeywords(k);
-      final r = await widget.collect(context, CaseQuery(kw.primary.first, cate: cate, months: months, more: [...kw.primary.skip(1), ...kw.suggestions.take(3)]), doneLabel: tr('hist.useAndSummarize'), auto: true, details: 6, rivals: 0);
+      final r = await widget.collect(context, CaseQuery(kw.primary.first, cate: cate, months: months, more: [...kw.primary.skip(1), ...kw.suggestions.take(3)]), doneLabel: tr('hist.useAndSummarize'), auto: true, details: 3, rivals: 0);
       if (!_alive || r == null) return;
       if (r.cases.isEmpty) throw StateError(tr('case.noResultsHint'));
       setState(() {

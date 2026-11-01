@@ -27,7 +27,7 @@ class CaseAnalysisPage extends StatefulWidget {
 
 const _prefsKey = 'selfquote.case.query';
 const _periods = [3, 6, 12, 24]; // 月
-const _autoDetails = 10; // 交叉分析自動點開的決標公告數
+const _autoDetails = 5; // 交叉分析自動點開的決標公告數（採購網對連續打開公告會要求驗證碼檢核，所以不多開）
 const _autoRivals = 3; // 自動查紀錄的競爭對手數
 
 enum _Sort { date, amountDesc, amountAsc }

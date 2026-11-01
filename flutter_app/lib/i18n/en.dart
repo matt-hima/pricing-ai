@@ -867,4 +867,5 @@ const Map<String, String> enStrings = {
   'case.rev.cases': "Reviewed {n} (attended {a})",
   'case.rev.winners': "Won by: {w}",
   'case.rev.note': "Committee members are published after the award under Taiwan's Government Procurement Act, for transparency only. Contacting, lobbying or seeking favours from committee members is prohibited; do not use this information for that.",
+  'case.browser.verification': "The procurement site asked for a verification check (to prevent mass automated queries). The app does not pass verification checks for you, so it stopped opening award notices automatically; other results are still brought back. To see more notices, complete the check on the left yourself and open cases by hand.",
 };

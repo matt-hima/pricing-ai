@@ -53,4 +53,13 @@ void main() {
     expect(pickRivalsToLookUp(col, 3).length, 3); // 查過的那家換成下一家
     expect(pickRivalsToLookUp(col, 10).length, 6); // 7 家投標廠商，1 家已查過
   });
+
+  test('the site verification page is recognized and not read as a notice', () {
+    const page = '<html><body><h2>驗證碼檢核</h2><p>為預防惡意程式針對本系統進行大量查詢致影響系統服務品質，請於B區挑選與A區相同之撲克牌後送出。</p></body></html>';
+    expect(isVerificationPage(page), isTrue);
+    expect(isVerificationPage(oneBidder), isFalse);
+    final col = CaseCollection();
+    expect(col.addPage('https://web.pcc.gov.tw/tps/atm/AtmAwardWithoutSso/QueryAtmAwardDetail?pkAtmMain=NzEzMTY5MDg=', page), isFalse);
+    expect(col.details, isEmpty);
+  });
 }
