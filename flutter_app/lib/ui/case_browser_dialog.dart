@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../case_analysis/pcc.dart';
+import '../case_analysis/tender.dart';
 import '../i18n/i18n.dart';
 import '../service_pricing/service_plan.dart' show formatMoney;
 
@@ -19,12 +20,35 @@ class CaseQuery {
   final ProcCate cate;
   final int months;
   final String vendor;
+
+  /// 查招標中（等標期內）的案件，不查決標
+  final bool open;
+
+  /// 分析一件招標中的案件：先讀它的招標公告，再查同機關近幾年的決標（找上一次同一案的得標廠商）與同類決標
+  final OpenTender? tender;
   CaseQuery(String keyword, {this.cate = ProcCate.any, this.months = 12, List<String> more = const []})
       : keywords = [keyword, ...more],
-        vendor = '';
+        vendor = '',
+        open = false,
+        tender = null;
   const CaseQuery.vendor(this.vendor, {this.months = 12})
       : keywords = const [],
-        cate = ProcCate.any;
+        cate = ProcCate.any,
+        open = false,
+        tender = null;
+  CaseQuery.open(String keyword, {this.cate = ProcCate.any, List<String> more = const []})
+      : keywords = [keyword, ...more],
+        months = 12,
+        vendor = '',
+        open = true,
+        tender = null;
+  CaseQuery.forTender(OpenTender this.tender, {required this.keywords, this.months = 12})
+      : cate = ProcCate.any,
+        vendor = '',
+        open = false;
+
+  /// 同機關的決標往前查幾年（上一次同一案通常在 1–3 年前）
+  static const agencyYears = 3;
 
   String get keyword => vendor.isNotEmpty ? vendor : keywords.first;
 
@@ -36,6 +60,14 @@ class CaseQuery {
   /// 依序要查的網址
   List<Uri> get urls {
     final to = DateTime.now();
+    if (open) return [for (final k in keywords) openTenderSearchUrl(keyword: k, cate: cate)];
+    if (tender case final t?) {
+      return [
+        Uri.parse(t.url),
+        awardSearchUrl(from: DateTime(to.year - agencyYears, to.month, to.day), to: to, agency: t.agency, cate: t.cate),
+        for (final k in keywords) awardSearchUrl(keyword: k, from: _from, to: to),
+      ];
+    }
     if (vendor.isNotEmpty) {
       return [awardSearchUrl(from: _from, to: to, wonBy: vendor), awardSearchUrl(from: _from, to: to, bidBy: vendor)];
     }
@@ -113,6 +145,8 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   /// 載入的頁面是不是佇列裡的那一頁：清單頁比查詢代號，決標公告比主鍵（點開後網址會轉址）
   static bool _same(String loaded, Uri queued) {
     if (queued.path.contains('readTenderAgent')) return loaded.contains('readTenderAgent') && searchKey(Uri.parse(loaded)) == searchKey(queued);
+    if (queued.path.contains('readTenderBasic')) return loaded.contains('readTenderBasic') && Uri.parse(loaded).queryParameters['tenderName'] == queued.queryParameters['tenderName'];
+    if (tenderPk(queued.toString()) case final tpk?) return tenderPk(loaded) == tpk;
     final pk = awardPk(queued.toString());
     return pk != null && awardPk(loaded) == pk;
   }
@@ -133,7 +167,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
         }
         return;
       }
-      if (verifyPending && html != null && url.path.contains('QueryAtmAwardDetail')) {
+      if (verifyPending && html != null && (url.path.contains('QueryAtmAwardDetail') || url.path.contains('searchTenderDetail'))) {
         debugPrint('case browser: verification passed; continuing');
         if (mounted) {
           setState(() {
@@ -142,7 +176,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
         }
       }
       final added = html != null && col.addPage(url.toString(), html);
-      debugPrint('case browser: read ${url.path.split('/').last} ${added ? 'ok' : 'nothing new'} (${html?.length ?? 0} chars) · cases ${col.cases.length}, notices ${col.details.length}');
+      debugPrint('case browser: read ${url.path.split('/').last} ${added ? 'ok' : 'nothing new'} (${html?.length ?? 0} chars) · cases ${col.cases.length}, notices ${col.details.length}, open ${col.openTenders.length}, tender notices ${col.notices.length}');
       if (added && mounted) setState(() {});
     } catch (e) {
       debugPrint('case browser: could not read $url: $e'); // 讀不到就算了，使用者可以繼續瀏覽
@@ -186,7 +220,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
   /// 網站要求驗證：佇列裡還沒打開的決標公告全部拿掉（查廠商紀錄的清單頁不受影響，繼續）
   void _skipNotices() {
     for (var i = queue.length - 1; i >= next; i--) {
-      if (!queue[i].path.contains('readTenderAgent')) queue.removeAt(i);
+      if (!queue[i].path.contains('readTenderAgent') && !queue[i].path.contains('readTenderBasic')) queue.removeAt(i);
     }
     final sp = _span[_Stage.details];
     if (sp != null) _span[_Stage.details] = (sp.$1, sp.$1 + (next - sp.$1).clamp(0, sp.$2 - sp.$1));
@@ -208,7 +242,13 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
               if (mounted) setState(() {});
             }
           }
-          if (!skippedNotices) queue.addAll(pickForCrossRef(col, widget.autoDetails).map((c) => Uri.parse(c.url)));
+          if (!skippedNotices) {
+            // 分析招標中的案件：先打開上一次同一案的決標公告（看是誰得標、多少錢）
+            final t = widget.query?.tender;
+            final inc = t == null ? null : incumbentOf(t, col.vendorCases['org:${t.agency}'] ?? const []);
+            if (inc != null && !col.details.containsKey(inc.url)) queue.add(Uri.parse(inc.url));
+            queue.addAll(pickForCrossRef(col, widget.autoDetails).where((c) => c.url != inc?.url).map((c) => Uri.parse(c.url)));
+          }
         case _Stage.details:
           stage = _Stage.rivals;
           for (final r in pickRivalsToLookUp(col, widget.autoRivals)) {
@@ -228,7 +268,7 @@ class _CaseBrowserDialogState extends State<CaseBrowserDialog> {
     if (!widget.auto || !mounted) return;
     setState(() => stage = _Stage.done);
     await Future<void>.delayed(const Duration(milliseconds: 800));
-    if (mounted && col.cases.isNotEmpty || mounted && col.vendorCases.isNotEmpty) Navigator.pop(context, col);
+    if (mounted && (col.cases.isNotEmpty || col.vendorCases.isNotEmpty || col.openTenders.isNotEmpty || col.notices.isNotEmpty)) Navigator.pop(context, col);
   }
 
   void _runNext() {
