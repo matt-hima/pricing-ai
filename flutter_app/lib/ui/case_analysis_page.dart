@@ -13,6 +13,7 @@ import '../case_analysis/case_report.dart';
 import '../case_analysis/case_store.dart';
 import '../case_analysis/case_store_open.dart';
 import '../case_analysis/case_summary.dart' show priceFacts, competitionFacts;
+import '../case_analysis/page_reader.dart' show proposeMapping;
 import '../case_analysis/pcc.dart';
 import '../case_analysis/sources/source.dart';
 import '../case_analysis/tender.dart';
@@ -25,6 +26,7 @@ import 'case_browser_dialog.dart';
 import 'chart_frame.dart';
 import 'competitor_dialog.dart';
 import 'save_file.dart';
+import 'site_learn_dialog.dart';
 
 /// 案件分析：查政府電子採購網的決標公告 → 同類案件的金額分布、機關、得標廠商 → 對照自己的報價
 class CaseAnalysisPage extends StatefulWidget {
@@ -383,6 +385,17 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           icon: const Icon(Icons.travel_explore, size: 18),
           label: Text(tr('case.google')),
         ),
+        if (caseBrowserAvailable)
+          OutlinedButton.icon(
+            key: const ValueKey('learn.open'),
+            onPressed: () => openSiteLearn(
+              context,
+              propose: (page, kind) => s.withModel((ask) => proposeMapping((a, b, c) => ask(a, b, schema: c), page, kind)),
+              modelTip: RegExp(r'7B|8B').hasMatch(s.modelBase) ? null : tr('learn.modelTip'),
+            ),
+            icon: const Icon(Icons.school_outlined, size: 18),
+            label: Text(tr('learn.button')),
+          ),
         if (related.isNotEmpty)
           SizedBox(
             width: double.infinity,

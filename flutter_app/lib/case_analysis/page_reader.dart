@@ -60,6 +60,9 @@ class PageDigest {
   final List<PageTable> tables;
   const PageDigest({required this.title, required this.text, required this.pairs, required this.tables});
 
+  /// 列最多的資料表（清單）
+  PageTable? get mainTable => (tables.toList()..sort((a, b) => b.rows.length.compareTo(a.rows.length))).firstOrNull;
+
   String? value(String label) {
     for (final (k, v) in pairs) {
       if (k == label) return v;
@@ -221,6 +224,22 @@ class SiteProfile {
 
   static String pathKey(Uri u) => u.path;
 
+  /// 這一頁學過沒有（學過就是哪一種）
+  PageKind? kindOf(Uri u) => paths[pathKey(u)];
+
+  /// 使用者確認的對應：記下這個路徑是哪一種頁面，以及那種頁面的欄位在哪裡
+  void confirm(Uri url, PageMapping m) {
+    paths[pathKey(url)] = m.kind;
+    if (m.isList) {
+      columns[m.kind] = Map.of(m.columns);
+    } else {
+      labels[m.kind] = Map.of(m.labels);
+    }
+  }
+
+  /// 學過的頁面種類
+  Set<PageKind> get kinds => {...paths.values};
+
   Map<String, dynamic> toJson() => {
         'host': host,
         'paths': {for (final e in paths.entries) e.key: e.value.name},
@@ -246,6 +265,44 @@ class PageRead {
 }
 
 String _required(String f) => f.replaceFirst('*', '');
+
+/// 一種頁面的欄位要怎麼讀：公告用標籤、清單用欄號。使用者可以改，確認後存進網站設定檔。
+class PageMapping {
+  final PageKind kind;
+  final Map<String, String> labels;
+  final Map<String, int> columns;
+  PageMapping(this.kind, {Map<String, String>? labels, Map<String, int>? columns})
+      : labels = labels ?? {},
+        columns = columns ?? {};
+
+  bool get isList => kind == PageKind.tenderList || kind == PageKind.awardList;
+
+  /// 這種頁面要找的欄位（必要的在前面帶 *）
+  List<String> get fields => [for (final f in pageFields[kind] ?? const <String>[]) _required(f)];
+  bool isRequired(String field) => (pageFields[kind] ?? const <String>[]).contains('*$field');
+
+  /// 用這個對應讀出來
+  PageRead read(PageDigest d) => isList ? PageRead(kind, rows: _readList(d, columns)) : PageRead(kind, fields: _readNotice(d, labels));
+
+  /// 必要欄位都讀得到
+  bool complete(PageDigest d) => _complete(kind, read(d));
+}
+
+/// 可以選的標籤（公告）或欄（清單，「欄號:表頭」）
+List<String> mappingChoices(PageDigest d, PageKind kind) {
+  if (kind == PageKind.tenderList || kind == PageKind.awardList) {
+    final t = d.mainTable;
+    return t == null ? const [] : [for (final (i, h) in t.header.indexed) '$i:$h'];
+  }
+  return d.labels;
+}
+
+/// 本機模型提出對應（使用者已經說了這是哪一種頁面，不再問模型）
+Future<PageMapping> proposeMapping(PageAsk ask, PageDigest d, PageKind kind) async => switch (kind) {
+      PageKind.tenderList || PageKind.awardList => PageMapping(kind, columns: await mapListColumns(ask, d, kind)),
+      PageKind.tenderNotice || PageKind.awardNotice => PageMapping(kind, labels: await mapNoticeLabels(ask, d, kind)),
+      _ => PageMapping(kind),
+    };
 
 /// 依對應讀出公告的欄位值（檢查不過的不要）
 Map<String, String> _readNotice(PageDigest d, Map<String, String> labels) => {
@@ -394,7 +451,7 @@ Which label holds ${_fieldHints[f]}? Choose "" when no label fits. Output JSON o
 
 /// 清單：每個欄位在哪一欄（選項是「欄號:表頭」）
 Future<Map<String, int>> mapListColumns(PageAsk ask, PageDigest d, PageKind kind) async {
-  final t = (d.tables.toList()..sort((a, b) => b.rows.length.compareTo(a.rows.length))).firstOrNull;
+  final t = d.mainTable;
   if (t == null) return const {};
   final fields = [for (final f in pageFields[kind]!) _required(f)];
   final opts = [for (final (i, h) in t.header.indexed) '$i:$h'];
