@@ -181,6 +181,36 @@ void main() {
       expect((await db.awards(const AwardFilter(country: Country.es))).single.amount, 120);
     });
 
+    test('search filters every country, OR keywords, dates and literal wildcards', () async {
+      final titles = {
+        Country.tw: ('網 站維護 100%_完成', '網站'),
+        Country.uk: ('WEBSITE maintenance 100%_complete', 'website'),
+        Country.es: ('Diseño de PÁGINA WEB 100%_completo', 'pagina web'),
+        Country.pt: ('Manutenção do SÍTIO WEB 100%_completo', 'sitio web'),
+        Country.jp: ('Ｗｅｂ サイト保守 100%_完了', 'webサイト'),
+      };
+      for (final entry in titles.entries) {
+        await db.importAwards(entry.key, [
+          SourceAward(id: '${entry.key.name}:search', name: entry.value.$1,
+            agency: 'Agency', winners: const [('Vendor', null)],
+            amount: 100, date: DateTime(2026, 9, 15)),
+        ]);
+      }
+      for (final entry in titles.entries) {
+        final filter = AwardFilter(country: entry.key,
+          keywords: ['no matching title', entry.value.$2],
+          source: 'dataset', from: DateTime(2026, 9), to: DateTime(2026, 10));
+        expect(await db.countAwards(filter), 1, reason: entry.key.name);
+        expect((await db.awards(filter)).single.name, entry.value.$1);
+        expect(await db.countAwards(AwardFilter(country: entry.key,
+          keywords: ['100%_'])), 1);
+        expect(await db.countAwards(AwardFilter(country: entry.key,
+          keywords: ['100%X'])), 0);
+        expect(await db.countAwards(AwardFilter(country: entry.key,
+          from: DateTime(2026, 10))), 0);
+      }
+    });
+
     test('sync: settled periods are skipped, recent ones rechecked at most daily, failures retried next time', () async {
       final http = _FakeHttp({'uk-cf': jsonEncode(ukPage([ukRelease('ocds-b5fd17-bbbb', 'Website support', 30000)]))});
       final store = CaseStore(db, _NoFetcher(), sourceHttp: http);
