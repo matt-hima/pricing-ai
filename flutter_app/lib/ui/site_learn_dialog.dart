@@ -31,6 +31,7 @@ class _SiteLearnDialogState extends State<SiteLearnDialog> {
   InAppWebViewController? web;
   final address = TextEditingController();
   bool loading = false, canBack = false, canForward = false;
+  int loads = 0; // 瀏覽器每開始載入一頁就 +1：面板讀到的內容就作廢
   SiteProfileStore? store;
 
   @override
@@ -109,7 +110,12 @@ class _SiteLearnDialogState extends State<SiteLearnDialog> {
                   initialSettings: InAppWebViewSettings(javaScriptEnabled: true, supportMultipleWindows: true, isInspectable: kDebugMode),
                   onWebViewCreated: (c) => web = c,
                   onLoadStart: (c, url) {
-                    if (mounted) setState(() => loading = true);
+                    if (mounted) {
+                      setState(() {
+                        loading = true;
+                        loads++;
+                      });
+                    }
                   },
                   onLoadStop: (c, url) async {
                     final b = await c.canGoBack(), f = await c.canGoForward();
@@ -131,7 +137,7 @@ class _SiteLearnDialogState extends State<SiteLearnDialog> {
               Container(
                 width: 400,
                 decoration: BoxDecoration(border: Border(left: BorderSide(color: cs.outlineVariant))),
-                child: store == null ? const Center(child: CircularProgressIndicator()) : SiteLearnPanel(current: _current, store: store!, propose: widget.propose, modelTip: widget.modelTip, open: (u) => web?.loadUrl(urlRequest: URLRequest(url: WebUri(u)))),
+                child: store == null ? const Center(child: CircularProgressIndicator()) : SiteLearnPanel(pageVersion: loads, current: _current, store: store!, propose: widget.propose, modelTip: widget.modelTip, open: (u) => web?.loadUrl(urlRequest: URLRequest(url: WebUri(u)))),
               ),
             ]),
           ),
@@ -148,7 +154,8 @@ class SiteLearnPanel extends StatefulWidget {
   final ProposeMapping propose;
   final String? modelTip;
   final void Function(String url)? open; // 在瀏覽器打開清單裡的一件
-  const SiteLearnPanel({super.key, required this.current, required this.store, required this.propose, this.modelTip, this.open});
+  final int pageVersion; // 換頁就變：之前讀到的內容不再適用
+  const SiteLearnPanel({super.key, this.pageVersion = 0, required this.current, required this.store, required this.propose, this.modelTip, this.open});
 
   @override
   State<SiteLearnPanel> createState() => _SiteLearnPanelState();
@@ -164,6 +171,15 @@ class _SiteLearnPanelState extends State<SiteLearnPanel> {
   PageRead? known; // 學過的頁面：用設定檔直接讀到的
   bool reading = false, busy = false;
   String? error, saved;
+
+  @override
+  void didUpdateWidget(SiteLearnPanel old) {
+    super.didUpdateWidget(old);
+    if (old.pageVersion != widget.pageVersion) {
+      page = url = kind = mapping = known = null;
+      error = saved = null;
+    }
+  }
 
   SiteProfile? get profile => url == null ? null : widget.store.of(url!.host);
 

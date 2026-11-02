@@ -81,10 +81,12 @@ void main() {
         await tester.pump(const Duration(seconds: 6));
       }
       final chip = find.byKey(ValueKey('learn.kind:$kind'));
+      await click(find.byKey(const ValueKey('learn.read')), 'Read this page');
       for (var i = 0; i < 10 && chip.evaluate().isEmpty; i++) {
-        await click(find.byKey(const ValueKey('learn.read')), 'Read this page');
         await tester.pump(const Duration(seconds: 3));
+        await click(find.byKey(const ValueKey('learn.read')), 'Read this page again');
       }
+      expect(find.byKey(const ValueKey('learn.kind:tenderList')), findsOneWidget);
       expect(chip, findsOneWidget, reason: 'the page should have a table or labelled fields');
       await click(chip, kind);
       final watch = Stopwatch()..start();

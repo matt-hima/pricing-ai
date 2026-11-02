@@ -95,6 +95,29 @@ void main() {
     expect((await SiteProfileStore.load()).profiles, isEmpty);
   });
 
+  testWidgets('changing the page discards what was read', (tester) async {
+    I18n.lang = Lang.zh;
+    SharedPreferences.setMockInitialValues({});
+    final store = await SiteProfileStore.load();
+    Widget panel(int v) => MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 420,
+              child: SiteLearnPanel(pageVersion: v, current: () async => (page('pcc_tender_notice.html'), noticeUrl), store: store, propose: (d, k) async => PageMapping(k)),
+            ),
+          ),
+        );
+    await tester.binding.setSurfaceSize(const Size(600, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(panel(0));
+    await tester.tap(find.byKey(const ValueKey('learn.read')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('learn.kind:tenderNotice')), findsOneWidget);
+    await tester.pumpWidget(panel(1)); // 瀏覽器換了一頁
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('learn.kind:tenderNotice')), findsNothing);
+  });
+
   testWidgets('learn a list: columns proposed, rows read, save needs the required fields', (tester) async {
     I18n.lang = Lang.zh;
     SharedPreferences.setMockInitialValues({});
