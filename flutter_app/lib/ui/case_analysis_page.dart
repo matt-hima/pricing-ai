@@ -15,6 +15,8 @@ import '../case_analysis/case_store_open.dart';
 import '../case_analysis/case_summary.dart' show priceFacts, competitionFacts;
 import '../case_analysis/pcc.dart';
 import '../case_analysis/sources/source.dart';
+import '../case_analysis/tender.dart';
+import '../case_analysis/tender_brief.dart';
 import '../i18n/i18n.dart';
 import '../llm.dart' show downloadText;
 import '../pdf_export.dart' show renderPdfDoc;
@@ -55,6 +57,16 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   bool showAll = false;
 
   CaseCollection col = CaseCollection();
+
+  /// 招標中的案件（主要的查詢）；決標資料用來分析選定的那一案
+  List<OpenTender> openTenders = [];
+  int? openTotal;
+  bool openSearched = false;
+  OpenTender? tender;
+  TenderNotice? notice;
+  TenderBrief? brief;
+  bool briefLoading = false;
+  String? briefError;
 
   /// 官方開放資料：匯入本機資料庫後，用「篩選 → 量值 → 分組」的方式提問（參考 Metabase）
   _DataView? data;
@@ -157,6 +169,63 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     });
   }
 
+  /// 主要的查詢：招標中（等標期內）的案件
+  Future<void> _searchOpen() async {
+    final k = keyword.text.trim();
+    if (k.isEmpty) return;
+    _save();
+    _refreshRelated();
+    final primary = expandKeywords(k).primary;
+    final more = [...primary.skip(1), ...related.where(picked.contains)];
+    final r = await widget.collect(context, CaseQuery.open(primary.first, cate: cate, more: more), auto: true, details: 0, rivals: 0, known: _known);
+    if (r == null || !mounted) return;
+    setState(() {
+      openTenders = [...r.openTenders]..sort((a, b) => (a.deadline ?? DateTime(9999)).compareTo(b.deadline ?? DateTime(9999)));
+      openTotal = r.openTotals.values.fold<int>(0, (a, b) => a + b);
+      openSearched = true;
+    });
+  }
+
+  /// 分析一件招標中的案件：讀招標公告、同機關近幾年的決標（上一次同一案）、同類決標（點開明細、查對手紀錄），再讓本機模型讀公告
+  Future<void> _analyzeTender(OpenTender t) async {
+    final r = await widget.collect(context, CaseQuery.forTender(t, keywords: _keywordsNow(), months: months), auto: true, details: _autoDetails, rivals: _autoRivals, known: _known);
+    if (r == null || !mounted) return;
+    _saveCases(r);
+    setState(() {
+      col = r;
+      searched = true;
+      showAll = false;
+      tender = t;
+      notice = r.notices[t.url];
+      brief = null;
+      briefError = null;
+    });
+    await _readNotice();
+  }
+
+  Future<void> _readNotice() async {
+    final n = notice;
+    if (n == null || briefLoading) return;
+    setState(() {
+      briefLoading = true;
+      briefError = null;
+    });
+    try {
+      final b = await s.withModel((ask) => readTenderNotice(ask: (a, b, c) => ask(a, b, schema: c), lang: I18n.lang, notice: n));
+      if (mounted) setState(() => brief = b);
+    } catch (e) {
+      if (mounted) setState(() => briefError = errText(e));
+    } finally {
+      if (mounted) setState(() => briefLoading = false);
+    }
+  }
+
+  /// 上一次同一案（同機關、案名相近）
+  AwardCase? get _incumbent => tender == null ? null : incumbentOf(tender!, col.vendorCases['org:${tender!.agency}'] ?? const []);
+
+  /// 合理價格（同類案件的決標金額 / 預算 × 這一案的預算）
+  PriceGuide? get _guide => tender == null ? null : priceGuide(budget: notice?.budget ?? tender!.budget, bestValue: notice?.bestValue ?? false, details: details.values);
+
   /// 再打開瀏覽器點開更多案件（延續目前收集的資料）
   Future<void> _openMore() async {
     final k = keyword.text.trim();
@@ -235,7 +304,11 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
               Text(tr('case.intro'), style: t.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
               const SizedBox(height: 16),
               _queryCard(context),
-              if (st != null || (data?.amounts.isNotEmpty ?? false)) _shareCard(context),
+              if (st != null || openTenders.isNotEmpty || (data?.amounts.isNotEmpty ?? false)) _shareCard(context),
+              if (tender != null) _tenderCard(context),
+              if (openSearched) _openCard(context),
+              if (tender != null && st != null)
+                Padding(padding: const EdgeInsets.fromLTRB(4, 8, 4, 12), child: Text(tr('tender.data'), style: t.titleMedium?.copyWith(color: cs.onSurfaceVariant))),
               if (caseStoreAvailable) _datasetCard(context),
               if (searched && cases.isEmpty) _card(context, tr('case.noResults'), Text(tr('case.noResultsHint'), style: t.bodyMedium)),
               if (st != null) ...[
@@ -303,7 +376,8 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             onChanged: (v) => setState(() => months = v ?? 12),
           ),
         ),
-        FilledButton.icon(onPressed: _search, icon: const Icon(Icons.manage_search, size: 18), label: Text(tr('case.search'))),
+        FilledButton.icon(key: const ValueKey('tender.searchOpen'), onPressed: _searchOpen, icon: const Icon(Icons.campaign_outlined, size: 18), label: Text(tr('tender.searchOpen'))),
+        OutlinedButton.icon(onPressed: _search, icon: const Icon(Icons.manage_search, size: 18), label: Text(tr('case.search'))),
         OutlinedButton.icon(
           onPressed: keyword.text.trim().isEmpty ? null : () => openGoogleAiMode(context, tr('case.google.marketQuery', {'k': keyword.text.trim()})),
           icon: const Icon(Icons.travel_explore, size: 18),
@@ -410,6 +484,8 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       title: tr('report.title', {'k': kws.isEmpty ? keyword.text.trim() : kws.first}),
       subtitle: tr('report.subtitle', {'d': fileDate(), 'k': kws.join(Lang.list), 'c': tr('case.cate.${cate.name}'), 'm': tr('case.months', {'n': '$months'})}),
       sections: [
+        ?_tenderSection(),
+        ?_openSection(),
         if (st != null)
           ReportSection(
             tr('case.summary'),
@@ -535,6 +611,216 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       ]),
     );
   }
+
+  String _ymd(DateTime? d) => d == null ? '' : '${d.year}/${d.month}/${d.day}';
+
+  String _left(OpenTender t) {
+    final d = t.daysLeft(DateTime.now());
+    if (d == null) return '';
+    if (d < 0) return tr('tender.closed');
+    if (d == 0) return tr('tender.dueToday');
+    return tr('tender.daysLeft', {'n': '$d'});
+  }
+
+  /// 招標中的案件清單（截止日近的在前）
+  Widget _openCard(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    return _card(
+      context,
+      tr('tender.open'),
+      sub: openTenders.isEmpty ? tr('tender.none') : tr('tender.count', {'n': '${openTenders.length}'}),
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final o in openTenders)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  InkWell(
+                    onTap: () => launchUrl(Uri.parse(o.url)),
+                    child: Text(o.name, style: t.bodyMedium?.copyWith(color: cs.primary, fontWeight: tender?.url == o.url ? FontWeight.w700 : null), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    [o.agency, o.method, o.category, if (o.deadline != null) '${tr('tender.f.deadline')} ${_ymd(o.deadline)}（${_left(o)}）'].where((x) => x.isNotEmpty).join('  ·  '),
+                    style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ]),
+              ),
+              const SizedBox(width: 12),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(o.budget == null ? tr('tender.budgetHidden') : _money(o.budget!), style: t.titleSmall),
+                const SizedBox(height: 4),
+                FilledButton.tonal(
+                  key: ValueKey('tender.analyze:${o.url}'),
+                  onPressed: () => _analyzeTender(o),
+                  child: Text(tr('tender.analyze')),
+                ),
+              ]),
+            ]),
+          ),
+        const SizedBox(height: 6),
+        Text(tr('tender.open.note'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+      ]),
+    );
+  }
+
+  /// 這一案怎麼做：公告重點、本機 AI 讀公告、要贏過誰、合理價格
+  Widget _tenderCard(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final o = tender!;
+    final n = notice;
+    final inc = _incumbent;
+    final incDetail = inc == null ? null : details[inc.url];
+    final g = _guide;
+    final ds = DetailStats.of(details.values);
+    final mine = double.tryParse(myPrice.text.replaceAll(',', '').trim());
+    Widget section(String title, List<Widget> children) => Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: t.titleSmall?.copyWith(color: cs.primary)), const SizedBox(height: 4), ...children]),
+        );
+    Widget line(String s) => Padding(padding: const EdgeInsets.only(top: 3), child: Text(s, style: t.bodyMedium));
+    return _card(
+      context,
+      tr('tender.brief'),
+      sub: '${o.name} · ${o.agency}',
+      trailing: TextButton.icon(onPressed: () => launchUrl(Uri.parse(o.url)), icon: const Icon(Icons.open_in_new, size: 16), label: Text(tr('tender.notice'))),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (n == null) Text(tr('tender.noNotice'), style: t.bodyMedium?.copyWith(color: cs.error)),
+        if (n != null)
+          Wrap(spacing: 10, runSpacing: 8, children: [
+            for (final (k, v) in tenderFacts(n, now: DateTime.now(), money: _money))
+              Container(
+                constraints: const BoxConstraints(maxWidth: 460),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: cs.surfaceContainerHighest.withValues(alpha: .5), borderRadius: BorderRadius.circular(8)),
+                child: Text.rich(TextSpan(children: [TextSpan(text: '$k  ', style: t.labelMedium?.copyWith(color: cs.onSurfaceVariant)), TextSpan(text: v, style: t.bodyMedium)])),
+              ),
+          ]),
+        // 本機 AI 讀公告
+        if (n != null)
+          section(tr('tender.read'), [
+            if (briefLoading) ...[
+              const LinearProgressIndicator(),
+              Padding(padding: const EdgeInsets.only(top: 4), child: Text(s.busy ? s.progressText : tr('tender.reading'), style: t.labelSmall)),
+            ],
+            if (briefError != null) ...[
+              Text(tr('tender.aiError', {'e': briefError!}), style: t.bodyMedium?.copyWith(color: cs.error)),
+              TextButton(onPressed: _readNotice, child: Text(tr('tender.retry'))),
+            ],
+            if (brief != null) ...[
+              if (brief!.scope.isNotEmpty) line('${tr('tender.scope')}：${brief!.scope}'),
+              if (brief!.prepare.isNotEmpty) ...[line(tr('tender.prepare')), for (final p in brief!.prepare) line('• $p')],
+              Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('tender.aiNote'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
+            ],
+          ]),
+        // 要注意：程式從公告欄位寫
+        if (n != null && tenderRisks(n, now: DateTime.now()).isNotEmpty)
+          section(tr('tender.risks'), [
+            for (final r in tenderRisks(n, now: DateTime.now())) line('• $r'),
+            Text(tr('tender.risksNote'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+          ]),
+        // 要贏過誰
+        section(tr('tender.beat'), [
+          if (inc == null) line(tr('tender.noIncumbent', {'y': '${CaseQuery.agencyYears}'})),
+          if (inc != null)
+            line(tr('tender.incumbent', {
+              'name': inc.name,
+              'date': _ymd(inc.date),
+              'amount': _money(inc.amount),
+              'w': incDetail?.winner ?? tr('tender.unknownWinner'),
+              'b': incDetail?.bidders == null ? '—' : '${incDetail!.bidders}',
+            })),
+          if (ds.topWinners.isNotEmpty) line(tr('tender.rivals', {'w': ds.topWinners.take(3).map((e) => e.key).join(Lang.list)})),
+          for (final c in competitorsOf(details).take(3))
+            if (col.totals.containsKey('won:${c.name}'))
+              () {
+                final p = VendorProfile.of(c.name, col);
+                return line('• ${c.name}：${tr('case.comp.record', {'w': '${p.wins}', 'b': '${p.bids}', 'r': p.winRate == null ? '—' : '${p.winRate!.round()}%'})}');
+              }(),
+          if (n?.bestValue ?? false) line(tr('tender.bestValueTip')),
+        ]),
+        // 合理價格
+        section(tr('tender.price'), [
+          if (g == null) line(tr('tender.priceFew')),
+          if (g != null)
+            line(g.mid == null
+                ? tr('tender.priceNoBudget', {'n': '${g.samples}', 'lo': '${(g.ratioLow * 100).round()}%', 'hi': '${(g.ratioHigh * 100).round()}%'})
+                : tr('tender.priceRange', {
+                    'n': '${g.samples}',
+                    'lo': '${(g.ratioLow * 100).round()}%',
+                    'hi': '${(g.ratioHigh * 100).round()}%',
+                    'mid': '${(g.ratioMid * 100).round()}%',
+                    'plo': _money(g.low!),
+                    'phi': _money(g.high!),
+                    'pmid': _money(g.mid!),
+                  })),
+          if (g != null && g.sameAwardWay) Text(tr('tender.priceSameWay'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+          if (incDetail?.budget != null && incDetail?.award != null && incDetail!.budget! > 0)
+            line(tr('tender.incumbentRatio', {'r': '${(incDetail.award! / incDetail.budget! * 100).round()}%'})),
+          if (g?.low != null && mine != null && mine > 0)
+            line(tr('tender.myQuote', {
+              'p': _money(mine),
+              'where': mine < g!.low! ? tr('tender.where.low') : (mine > g.high! ? tr('tender.where.high') : tr('tender.where.mid')),
+            })),
+        ]),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, children: [
+          OutlinedButton.icon(
+            onPressed: () => openGoogleAiMode(context, tr('tender.google', {'name': o.name, 'agency': o.agency})),
+            icon: const Icon(Icons.travel_explore, size: 18),
+            label: Text(tr('case.google')),
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  /// 報告裡的「這一案怎麼做」
+  ReportSection? _tenderSection() {
+    final o = tender;
+    if (o == null) return null;
+    final n = notice;
+    final inc = _incumbent;
+    final incDetail = inc == null ? null : details[inc.url];
+    final g = _guide;
+    final ds = DetailStats.of(details.values);
+    return ReportSection(
+      '${tr('tender.brief')} · ${o.name}',
+      lines: [
+        _kv(tr('case.col.agency'), o.agency),
+        if (n != null)
+          for (final (k, v) in tenderFacts(n, now: DateTime.now(), money: _money)) _kv(k, v),
+        if (brief?.scope.isNotEmpty ?? false) _kv(tr('tender.scope'), brief!.scope),
+        if (inc != null)
+          tr('tender.incumbent', {'name': inc.name, 'date': _ymd(inc.date), 'amount': _money(inc.amount), 'w': incDetail?.winner ?? tr('tender.unknownWinner'), 'b': incDetail?.bidders == null ? '—' : '${incDetail!.bidders}'})
+        else
+          tr('tender.noIncumbent', {'y': '${CaseQuery.agencyYears}'}),
+        if (ds.topWinners.isNotEmpty) tr('tender.rivals', {'w': ds.topWinners.take(3).map((e) => e.key).join(Lang.list)}),
+        if (g?.mid != null)
+          tr('tender.priceRange', {'n': '${g!.samples}', 'lo': '${(g.ratioLow * 100).round()}%', 'hi': '${(g.ratioHigh * 100).round()}%', 'mid': '${(g.ratioMid * 100).round()}%', 'plo': _money(g.low!), 'phi': _money(g.high!), 'pmid': _money(g.mid!)})
+        else
+          tr('tender.priceFew'),
+      ],
+      bullets: [
+        for (final p in brief?.prepare ?? const <String>[]) '${tr('tender.prepare')}：$p',
+        if (n != null)
+          for (final r in tenderRisks(n, now: DateTime.now())) '${tr('tender.risks')}：$r',
+      ],
+    );
+  }
+
+  /// 招標中的案件清單（報告用）
+  ReportSection? _openSection() => openTenders.isEmpty
+      ? null
+      : ReportSection(tr('tender.open'), table: [
+          [tr('case.col.name'), tr('case.col.agency'), tr('tender.f.deadline'), tr('case.col.budget')],
+          for (final o in openTenders.take(20)) [o.name, o.agency, '${_ymd(o.deadline)} ${_left(o)}', o.budget == null ? tr('tender.budgetHidden') : _money(o.budget!)],
+        ]);
 
   Widget _datasetCard(BuildContext context) {
     final t = Theme.of(context).textTheme;

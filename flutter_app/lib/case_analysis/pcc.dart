@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'tender.dart';
+
 /// 案件分析：查政府電子採購網（web.pcc.gov.tw）的「決標公告」，整理同類案件的決標金額分布、
 /// 常見機關、得標廠商與投標家數，讓使用者對照自己的報價落在哪個位置。
 /// 這裡只放純邏輯（查詢網址、解析 HTML、統計）；實際抓網頁在 pcc_fetch_*.dart。
@@ -22,7 +24,7 @@ String _ymd(DateTime d) => '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.
 /// 決標查詢的網址（GET 即可）。page 從 1 開始。
 /// 採購網的標案名稱查詢會去掉空白、當成一整串連續文字比對（沒有 AND / OR），所以「網站 維護」= 「網站維護」。
 /// [wonBy] / [bidBy]：依得標廠商 / 投標廠商名稱查（要用完整名稱，部分名稱會混到別家公司）。
-Uri awardSearchUrl({String keyword = '', required DateTime from, required DateTime to, ProcCate cate = ProcCate.any, int page = 1, int pageSize = 100, String wonBy = '', String bidBy = ''}) =>
+Uri awardSearchUrl({String keyword = '', required DateTime from, required DateTime to, ProcCate cate = ProcCate.any, int page = 1, int pageSize = 100, String wonBy = '', String bidBy = '', String agency = ''}) =>
     Uri.https(pccHost, '/prkms/tender/common/agent/readTenderAgent', {
       'pageSize': '$pageSize',
       'firstSearch': 'true',
@@ -30,6 +32,7 @@ Uri awardSearchUrl({String keyword = '', required DateTime from, required DateTi
       'isBinding': 'N',
       'isLogIn': 'N',
       'tenderName': keyword.replaceAll(RegExp(r'\s+'), ''),
+      if (agency.isNotEmpty) 'orgName': agency,
       if (wonBy.isNotEmpty) 'gottenVendorName': wonBy,
       if (bidBy.isNotEmpty) 'submitVendorName': bidBy,
       'tenderStatus': 'TENDER_STATUS_1', // 只看決標公告
@@ -349,15 +352,25 @@ String? awardPk(String url) {
   return q?['pk'] ?? q?['pkAtmMain'];
 }
 
+/// 招標公告的主鍵：清單上的連結是 tpam?pk=，打開後轉到 searchTenderDetail?pkPmsMain=
+String? tenderPk(String url) {
+  final q = Uri.tryParse(url)?.queryParameters ?? const {};
+  if (q['pkPmsMain'] case final pk?) return pk;
+  return url.contains('common/tpam') ? q['pk'] : null;
+}
+
+String tenderUrlForPk(String pk) => 'https://$pccHost/prkms/urlSelector/common/tpam?pk=$pk';
+
 /// 明細的統一網址：和清單裡案件的 url 相同，方便對應
 String awardUrlForPk(String pk) => 'https://$pccHost/prkms/urlSelector/common/atm?pk=$pk'; // 和網站上的連結一樣，結尾的 = 不編碼
 
-/// 一次查詢的代號：kw:關鍵字 / won:得標廠商 / bid:投標廠商
+/// 一次查詢的代號：kw:關鍵字 / won:得標廠商 / bid:投標廠商 / org:機關（機關的所有決標，找上一次同一案的得標廠商用）
 String searchKey(Uri url) {
   final q = url.queryParameters;
-  final won = q['gottenVendorName'] ?? '', bid = q['submitVendorName'] ?? '';
+  final won = q['gottenVendorName'] ?? '', bid = q['submitVendorName'] ?? '', org = q['orgName'] ?? '';
   if (won.isNotEmpty) return 'won:$won';
   if (bid.isNotEmpty) return 'bid:$bid';
+  if (org.isNotEmpty && (q['tenderName'] ?? '').isEmpty) return 'org:$org';
   return 'kw:${q['tenderName'] ?? ''}';
 }
 
@@ -368,8 +381,13 @@ class CaseCollection {
   final Map<String, int> totals = {}; // 查詢代號 → 網站上的總筆數
   final Map<String, int> loaded = {}; // 查詢代號 → 已讀到的筆數
   final Map<String, Set<String>> foundBy = {}; // AwardCase.url → 哪些查詢找到它
-  /// 依廠商查的結果（won:/bid:）另外放：那是廠商的所有案件，不該混進關鍵字的統計
+  /// 依廠商或機關查的結果（won:/bid:/org:）另外放：那是廠商或機關的所有案件，不該混進關鍵字的統計
   final Map<String, List<AwardCase>> vendorCases = {};
+
+  /// 招標中的案件（招標查詢，等標期內）與讀過的招標公告（key = tenderUrlForPk）
+  final List<OpenTender> openTenders = [];
+  final Map<String, int> openTotals = {}; // 招標查詢的關鍵字 → 網站上的筆數
+  final Map<String, TenderNotice> notices = {};
   CaseCollection({List<AwardCase>? cases, Map<String, AwardDetail>? details})
       : cases = cases ?? [],
         details = details ?? {};
@@ -407,6 +425,22 @@ class CaseCollection {
         changed = (foundBy[c.url] ??= {}).add(key) || changed;
       }
       return changed;
+    }
+    if (u != null && url.contains('readTenderBasic')) {
+      final r = parseOpenTenders(html);
+      final kw = u.queryParameters['tenderName'] ?? '';
+      final page = u.queryParameters['d-49738-p'] ?? '1';
+      if (!_pages.add('open:$kw#$page')) return false;
+      if (r.total != null) openTotals[kw] = r.total!;
+      final have = {for (final t in openTenders) t.url};
+      openTenders.addAll(r.tenders.where((t) => have.add(t.url)));
+      return true;
+    }
+    final tpk = tenderPk(url);
+    if (tpk != null && (url.contains('searchTenderDetail') || url.contains('common/tpam'))) {
+      if (!isTenderNotice(html)) return false;
+      notices[tenderUrlForPk(tpk)] = parseTenderNotice(html);
+      return true;
     }
     final pk = awardPk(url);
     if (pk != null && (url.contains('QueryAtmAwardDetail') || url.contains('common/atm'))) {
