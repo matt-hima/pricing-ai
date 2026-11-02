@@ -74,6 +74,8 @@ The browser version, including a shortcut that Chrome offers to install ("Pricin
 3. Start Pricing AI. This build is not yet signed with an Apple Developer ID, so the first time macOS may say it cannot verify the developer: open **System Settings → Privacy & Security** and click **Open Anyway** (only once).
 4. The first AI task downloads the AI engine and a model once (0.5–5 GB). After that the AI runs on your computer.
 
+From version 0.2.0 the app updates itself: it checks for a new release when it starts and once a day, and **Check for updates** is under *How it is estimated* in the right column. Version 0.1.0 has no updater, so install 0.2.0 once by hand.
+
 The Windows version is coming soon.
 
 ### System requirements
@@ -130,6 +132,7 @@ Website and tools:
 | `tool/deploy.sh` | Checks, tests, builds the web app under `/app/`, assembles the site and deploys it to Firebase Hosting (`--no-deploy` builds only) |
 | `tool/build_site.sh` | Assembles `build/site`: landing page at `/`, web app at `/app/` |
 | `python3 tool/gen_landing.py` | Generates the download-first landing page in 5 languages (installer links in `HOSTED_URLS`) |
+| `tool/release_mac.sh` | Builds the Mac release into `dist/`: DMG, Sparkle-signed `appcast.xml` for auto-update, SHA-256 in the release notes (steps in the script header) |
 | `python3 tool/gen_notices.py` | Regenerates the third-party notices and license texts |
 | `python3 tool/check_i18n.py` | Checks that all 5 languages have the same strings |
 

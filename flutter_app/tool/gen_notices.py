@@ -21,6 +21,8 @@ BUNDLED = [
     ("JSZip", "3.10.1", "MIT (dual MIT / GPL-3.0, used under MIT)", "ZIP export of sites (loaded from cdnjs)", "https://unpkg.com/jszip@3.10.1/LICENSE.markdown"),
     ("Noto Sans CJK (TC / JP)", "165c01b", "OFL-1.1", "Fonts for the PDF and site (web/fonts and jsDelivr)", "https://raw.githubusercontent.com/notofonts/noto-cjk/165c01b46ea533872e002e0785ff17e44f6d97d8/LICENSE"),
     ("Source Sans 3", "7c691c2", "OFL-1.1", "Latin font for the PDF and site (web/fonts and jsDelivr)", "https://raw.githubusercontent.com/adobe-fonts/source-sans/7c691c2772570a0d3a9e1bffe8a9d6074257d985/LICENSE.md"),
+    ("Sparkle", "2.9.6", "MIT", "Auto-update of the Mac app (bundled via the auto_updater plugin)", "https://raw.githubusercontent.com/sparkle-project/Sparkle/2.9.6/LICENSE"),
+    ("WinSparkle", "0.8.1", "MIT", "Auto-update of the Windows app (bundled via the auto_updater plugin)", "https://raw.githubusercontent.com/vslavik/winsparkle/v0.8.1/COPYING"),
     ("Font Awesome", "4.7.0", "OFL-1.1 (font) / MIT (CSS)", "Icons in site templates (loaded from cdnjs)", "https://unpkg.com/font-awesome@4.7.0/README.md"),
 ]
 

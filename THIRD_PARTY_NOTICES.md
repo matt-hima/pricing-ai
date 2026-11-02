@@ -17,6 +17,8 @@ the full license texts are in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.tx
 | JSZip | 3.10.1 | MIT (dual MIT / GPL-3.0, used under MIT) | ZIP export of sites (loaded from cdnjs) |
 | Noto Sans CJK (TC / JP) | 165c01b | OFL-1.1 | Fonts for the PDF and site (web/fonts and jsDelivr) |
 | Source Sans 3 | 7c691c2 | OFL-1.1 | Latin font for the PDF and site (web/fonts and jsDelivr) |
+| Sparkle | 2.9.6 | MIT | Auto-update of the Mac app (bundled via the auto_updater plugin) |
+| WinSparkle | 0.8.1 | MIT | Auto-update of the Windows app (bundled via the auto_updater plugin) |
 | Font Awesome | 4.7.0 | OFL-1.1 (font) / MIT (CSS) | Icons in site templates (loaded from cdnjs) |
 
 ## Downloaded on first use (desktop app)
@@ -38,13 +40,17 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | Stable Diffusion 1.5 | [CreativeML OpenRAIL-M](https://huggingface.co/spaces/CompVis/stable-diffusion-license) |
 | Stable Diffusion 2.1 / SDXL base 1.0 | [CreativeML OpenRAIL++-M](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md) |
 
-## Dart and Flutter packages (99)
+## Dart and Flutter packages (108)
 
 | Package | Version | License |
 |---|---|---|
 | archive | 4.5.2 | MIT |
 | args | 2.7.0 | BSD-3-Clause |
 | async | 2.13.1 | BSD-3-Clause |
+| auto_updater | 1.0.0 | MIT |
+| auto_updater_macos | 1.0.0 | MIT |
+| auto_updater_platform_interface | 1.0.0 | MIT |
+| auto_updater_windows | 1.0.0 | MIT |
 | characters | 1.4.1 | BSD-3-Clause |
 | clock | 1.1.2 | Apache-2.0 |
 | code_assets | 1.2.1 | BSD-3-Clause |
@@ -55,6 +61,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | drift | 2.35.3 | MIT |
 | drift_flutter | 0.3.1 | MIT |
 | ffi | 2.2.0 | BSD-3-Clause |
+| ffi_leak_tracker | 0.1.2 | BSD-3-Clause |
 | file | 7.0.1 | BSD-3-Clause |
 | file_selector | 1.1.0 | BSD-3-Clause |
 | file_selector_android | 0.5.2+11 | Apache-2.0 |
@@ -86,12 +93,15 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | jni | 1.1.0 | BSD-3-Clause |
 | jni_flutter | 1.0.4+1 | BSD-3-Clause |
 | jni_util | 1.0.0 | BSD-3-Clause |
+| json_annotation | 4.12.0 | BSD-3-Clause |
 | logging | 1.3.0 | BSD-3-Clause |
 | material_color_utilities | 0.13.0 | Apache-2.0 |
 | meta | 1.18.0 | BSD-3-Clause |
 | native_toolchain_c | 0.19.2 | BSD-3-Clause |
 | objective_c | 9.5.0 | BSD-3-Clause |
 | package_config | 2.2.0 | BSD-3-Clause |
+| package_info_plus | 10.2.2 | BSD-3-Clause |
+| package_info_plus_platform_interface | 4.1.0 | BSD-3-Clause |
 | pasteboard | 0.6.0 | Apache-2.0 |
 | path | 1.9.1 | BSD-3-Clause |
 | path_parsing | 1.1.0 | MIT |
@@ -138,6 +148,7 @@ Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta P
 | vector_graphics_compiler | 1.3.2 | BSD-3-Clause |
 | vector_math | 2.2.0 | BSD-3-Clause |
 | web | 1.1.1 | BSD-3-Clause |
+| win32 | 6.4.0 | BSD-3-Clause |
 | xdg_directories | 1.1.0 | BSD-3-Clause |
 | xml | 7.0.1 | MIT |
 | yaml | 3.1.4 | MIT |

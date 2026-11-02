@@ -5,6 +5,7 @@ import '../app_state.dart';
 import '../config.dart';
 import '../i18n/i18n.dart';
 import '../llm.dart';
+import 'app_update.dart';
 import 'engine_storage.dart';
 import 'get_app.dart';
 import 'web_utils.dart';
@@ -152,6 +153,8 @@ class Sidebar extends StatelessWidget {
 
     final about = card(tr('side.about'), [
       Text(tr('side.aboutBody'), style: t.bodySmall),
+      gap,
+      const AppUpdateTile(),
     ]);
 
     return LayoutBuilder(builder: (context, c) {

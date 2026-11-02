@@ -8,6 +8,7 @@ import 'site/site_store.dart';
 import 'site/ui/popup_observer.dart';
 import 'ui/app_shell.dart';
 import 'ui/pdf_surface.dart';
+import 'updater.dart';
 
 final popupObserver = PopupObserver();
 
@@ -19,6 +20,7 @@ Future<void> main() async {
   await siteStore.init();
   runApp(SelfQuoteApp(state: state, siteStore: siteStore));
   state.init();
+  initUpdater();
 }
 
 /// Dolibarr Eldy 主題的深藍色作為 Material 3 種子色
