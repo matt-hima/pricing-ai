@@ -311,27 +311,61 @@ Map<String, dynamic>? _json(String s) {
   }
 }
 
-/// 頁面的結構先由程式判斷，模型只在合理的幾種裡選：有資料表才可能是清單，有很多「標籤 → 值」才可能是公告
-List<PageKind> candidateKinds(PageDigest d) {
+/// 分兩步問（7B 也常把「招標中」和「已決標」搞混；分開問是一個簡單的二選一）：
+///  1. 頁面的樣子：清單、單一公告、驗證、錯誤、其他。選項先由程式依結構縮小：有資料表才可能是清單，有很多「標籤 → 值」才可能是公告
+///  2. 清單或公告：還在招標，還是已經決標
+const _shapeList = 'a list of procurements (search results)',
+    _shapeNotice = 'one procurement notice with its details',
+    _shapeCheck = 'a human verification check',
+    _shapeError = 'an error or no data',
+    _shapeOther = 'something else';
+const _stageOpen = 'still open for bids', _stageAwarded = 'already awarded (a result)';
+
+List<String> candidateShapes(PageDigest d) {
   final rows = d.tables.fold(0, (a, t) => t.rows.length > a ? t.rows.length : a);
   return [
-    if (rows >= 3) ...[PageKind.tenderList, PageKind.awardList],
-    if (d.labels.length >= 8) ...[PageKind.tenderNotice, PageKind.awardNotice],
-    PageKind.verification,
-    PageKind.error,
-    PageKind.other,
+    if (rows >= 3) _shapeList,
+    if (d.labels.length >= 8) _shapeNotice,
+    _shapeCheck,
+    _shapeError,
+    _shapeOther,
   ];
 }
 
 Future<PageKind> identifyPage(PageAsk ask, PageDigest d) async {
-  final kinds = candidateKinds(d);
-  final system = '''You classify one page from a public procurement website, in any language.
-Choose what the page is:
-${[for (final k in kinds) '- "${k.choice}": ${k.hint}'].join('\n')}
-Output JSON only.''';
-  final out = await ask(system, d.brief(), _enumSchema({'kind': [for (final k in kinds) k.choice]}));
-  final c = _json(out)?['kind'];
-  return kinds.firstWhere((k) => k.choice == c, orElse: () => PageKind.other);
+  final shapes = candidateShapes(d);
+  final shape = _json(await ask(
+    '''You look at one page from a public procurement website, in any language. Choose what the page is:
+- "$_shapeList": ${PageKind.tenderList.hint.replaceFirst('tenders that are still open for bids (has a deadline or closing date column)', 'tenders or awarded contracts')}
+- "$_shapeNotice": a single tender notice or award notice, shown as labels and values
+- "$_shapeCheck": ${PageKind.verification.hint}
+- "$_shapeError": ${PageKind.error.hint}
+- "$_shapeOther": ${PageKind.other.hint}
+Only these choices are possible here: ${shapes.map((s) => '"$s"').join(', ')}. Output JSON only.''',
+    d.brief(),
+    _enumSchema({'kind': shapes}),
+  ))?['kind'];
+  switch (shape) {
+    case _shapeCheck:
+      return PageKind.verification;
+    case _shapeError:
+      return PageKind.error;
+    case _shapeList || _shapeNotice:
+      final list = shape == _shapeList;
+      final words = list ? 'Columns: ${(d.tables.toList()..sort((a, b) => b.rows.length.compareTo(a.rows.length))).first.header.join(' | ')}' : 'Labels: ${d.labels.take(80).join(' / ')}';
+      final stage = _json(await ask(
+        '''This page from a public procurement website shows ${list ? 'a list of procurements' : 'one procurement'}.
+Is it about procurements "$_stageOpen" or "$_stageAwarded"?
+Open tenders show a bid deadline or closing date. Award results show the winner, the awarded amount, the number of bidders or the award date.
+Output JSON only.''',
+        'Title: ${d.title}\n$words',
+        _enumSchema({'stage': [_stageOpen, _stageAwarded]}),
+      ))?['stage'];
+      final awarded = stage == _stageAwarded;
+      return list ? (awarded ? PageKind.awardList : PageKind.tenderList) : (awarded ? PageKind.awardNotice : PageKind.tenderNotice);
+    default:
+      return PageKind.other;
+  }
 }
 
 /// 公告：每個欄位是哪個標籤（只能選頁面上有的標籤，或空字串）

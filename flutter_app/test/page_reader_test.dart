@@ -21,17 +21,16 @@ void main() {
     String col(String f, String head) => opts(f).firstWhere((o) => o.contains(head), orElse: () => '');
     if (props.containsKey('kind')) {
       final kind = user.contains('驗證碼檢核')
-          ? 'verification'
-          : user.contains('截止投標') && user.contains('Table')
-              ? 'tenderList'
-              : user.contains('決標金額') && user.contains('Table')
-                  ? 'awardList'
-                  : user.contains('截止投標')
-                      ? 'tenderNotice'
-                      : user.contains('投標廠商家數')
-                          ? 'awardNotice'
-                          : 'other';
-      return jsonEncode({'kind': PageKind.values.byName(kind).choice});
+          ? 'a human verification check'
+          : user.contains('Table')
+              ? 'a list of procurements (search results)'
+              : user.contains('截止投標') || user.contains('投標廠商家數')
+                  ? 'one procurement notice with its details'
+                  : 'something else';
+      return jsonEncode({'kind': kind});
+    }
+    if (props.containsKey('stage')) {
+      return jsonEncode({'stage': user.contains('截止投標') ? 'still open for bids' : 'already awarded (a result)'});
     }
     if (system.contains('choose the column')) {
       return jsonEncode({
@@ -64,11 +63,11 @@ void main() {
     expect((r.fields['title'], r.fields['agency'], r.fields['caseNo'], r.fields['awardMethod']), (n.name, n.agency, n.caseNo, n.awardWay));
     expect(r.fields['budget'], '1,446,930元');
     expect(r.fields['deadline'], '115/11/09 17:00');
-    expect(r.modelCalls, 7, reason: '$asked'); // 辨認 1 次 + 6 個欄位各 1 次
+    expect(r.modelCalls, 8, reason: '$asked'); // 辨認 2 次 + 6 個欄位各 1 次
     // 同一種頁面（同路徑、別的案件）：直接套用，不問模型；設定檔可以存起來再讀回
     final again = await readPage(page('pcc_tender_notice.html'), url.replace(query: 'pkPmsMain=2'), SiteProfile.fromJson(jsonDecode(jsonEncode(p.toJson())) as Map<String, dynamic>));
     expect((again.fromProfile, again.fields['deadline']), (true, '115/11/09 17:00'));
-    expect(calls, 7);
+    expect(calls, 8);
   });
 
   test('lists: the model picks columns; case number and title sharing a cell are split; links come along', () async {
@@ -88,7 +87,7 @@ void main() {
     expect(awards.kind, PageKind.awardList);
     expect(awards.rows.length, ruleAwards.length);
     expect((awards.rows.first['title'], awards.rows.first['caseNo'], awards.rows.first['link']), (ruleAwards.first.name, ruleAwards.first.caseNo, ruleAwards.first.url));
-    expect(calls, 4);
+    expect(calls, 6);
   });
 
   test('a verification page is recognized and never learned; a page missing required fields is asked again', () async {

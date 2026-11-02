@@ -10,7 +10,7 @@ import 'package:self_quote/i18n/i18n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 真的本機模型讀存好的採購網頁面：辨認頁面、選欄位，和現在寫死的解析結果比對，印出一張表。
-///   `LIVE_ENGINE_STORAGE=/path/to/pricing-ai FIXTURES=/path/to/test/fixtures flutter test integration_test/page_reader_model_test.dart -d macos`
+///   `LIVE_ENGINE_STORAGE=/path/to/pricing-ai MODEL=Qwen2.5-7B-Instruct FIXTURES=/path/to/test/fixtures flutter test integration_test/page_reader_model_test.dart -d macos`
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +22,7 @@ void main() {
     I18n.lang = Lang.zh;
     final state = AppState();
     await state.init();
+    if (Platform.environment['MODEL'] case final m?) state.setModel(m); // 例如 Qwen2.5-7B-Instruct
     final dir = Platform.environment['FIXTURES'] ?? '/Users/mattlin/Documents/自動估價網站/flutter_app/test/fixtures';
     String page(String f) => File('$dir/$f').readAsStringSync();
 
@@ -97,7 +98,7 @@ void main() {
       if (r.fromProfile && r.kind == wantKind) fromProfile++;
     }
     // ignore: avoid_print
-    print('PAGE READER REPORT\n${report.join('\n')}\n'
+    print('PAGE READER REPORT (${state.modelBase})\n${report.join('\n')}\n'
         'kinds $kindsRight / ${cases.length} · fields $fieldsRight / $fieldsAll · second pass from profile $fromProfile / 4 (no model)\n'
         'profile: ${profile.toJson()}');
   });
