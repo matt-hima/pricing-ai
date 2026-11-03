@@ -82,7 +82,7 @@ A versão para Windows chega em breve.
 
 | | |
 |---|---|
-| macOS | 10.15 ou posterior; recomendado Apple silicon (gerar imagens exige Apple silicon) |
+| macOS | 11 ou posterior; recomendado Apple silicon (gerar imagens exige Apple silicon) |
 | Windows | 10 ou 11, 64 bits; recomendada placa de vídeo com Vulkan (NVIDIA, AMD ou Intel) |
 | Memória | 8 GB de RAM ou mais; 16 GB para os modelos maiores |
 | Disco | Cerca de 1–6 GB livres para o motor e o modelo de IA |

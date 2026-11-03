@@ -82,7 +82,7 @@ The Windows version is coming soon.
 
 | | |
 |---|---|
-| macOS | 10.15 or later; Apple silicon recommended (picture generation needs Apple silicon) |
+| macOS | 11 or later; Apple silicon recommended (picture generation needs Apple silicon) |
 | Windows | 10 or 11, 64-bit; a graphics card with Vulkan support recommended (NVIDIA, AMD or Intel) |
 | Memory | 8 GB RAM or more; 16 GB for the larger AI models |
 | Disk | About 1–6 GB free for the AI engine and model |
