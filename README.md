@@ -118,6 +118,20 @@ flutter build macos --release     # Pricing AI.app
 flutter build web --base-href /app/
 ```
 
+Public macOS releases require a **Developer ID Application** certificate with its private key in the login Keychain and Apple notarization credentials. An Apple Development certificate or the Sparkle update signature does not satisfy Gatekeeper.
+
+Create the Developer ID Application certificate in Xcode → Settings → Accounts → Manage Certificates, then store notarization credentials interactively (do not put passwords in source files or chat):
+
+```bash
+xcrun notarytool store-credentials pricing-ai-notary
+cd flutter_app
+MAC_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" MAC_NOTARY_PROFILE=pricing-ai-notary bash tool/release_mac.sh
+```
+
+For Xcode-managed authentication, open a signed `.xcarchive` in Organizer, choose **Distribute App → Direct Distribution**, wait for notarization acceptance, then use **Export Notarized App**. This uses the team already signed in to Xcode.
+
+Before running the script, increase the version and build number in `pubspec.yaml` and prepare `dist/release-notes-<version>.md`. The script signs nested native code with hardened runtime, notarizes and staples the app and DMG, checks Gatekeeper acceptance, then generates the Sparkle update signature. A failed signing or notarization check stops the release.
+
 Integration test of the real Mac app (live procurement site and local AI):
 
 ```bash
