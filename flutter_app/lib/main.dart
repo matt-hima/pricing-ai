@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_state.dart';
+import 'firebase_options.dart';
 import 'i18n/i18n.dart';
 import 'llm.dart';
 import 'site/site_store.dart';
@@ -14,6 +16,11 @@ final popupObserver = PopupObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } on UnsupportedError {
+    // Windows、Linux、Android 還沒在 Firebase 登錄：不用 Firebase 照常啟動
+  }
   registerPdfPreview();
   final state = AppState();
   final siteStore = Store(aiAvailable: aiAvailable);

@@ -81,12 +81,22 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   Country dataCountry = Country.tw;
   final localKw = TextEditingController();
 
+  /// 使用者自己改過當地關鍵字：之後改中文關鍵字就不再覆蓋
+  bool _localEdited = false;
+
   void _pickCountry(Country c) {
     setState(() {
       dataCountry = c;
       data = null;
-      localKw.text = localKeywords(keyword.text.trim(), c).join(', ');
+      _localEdited = false;
+      _syncLocal();
     });
+  }
+
+  /// 當地關鍵字跟著中文關鍵字走（使用者沒自己改過時）
+  void _syncLocal() {
+    if (dataCountry == Country.tw || _localEdited) return;
+    localKw.text = localKeywords(keyword.text.trim(), dataCountry).join(', ');
   }
 
   List<String> _dataKeywords() => dataCountry == Country.tw
@@ -123,9 +133,15 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       final found = await s.withModel((ask) => aiKeywords((a, b, c) => ask(a, b, schema: c), k, dataCountry));
       if (!mounted) return;
       setState(() {
-        for (final w in found) {
-          if (!related.contains(w)) related.add(w);
-          picked.add(w);
+        if (dataCountry == Country.tw) {
+          for (final w in found) {
+            if (!related.contains(w)) related.add(w);
+            picked.add(w);
+          }
+        } else {
+          // 外文的字進當地關鍵字欄位（台灣的相關查詢字是中文）
+          final have = _dataKeywords();
+          localKw.text = [...have, for (final w in found) if (!have.contains(w)) w].join(', ');
         }
       });
       if (found.isEmpty) m.showSnackBar(SnackBar(content: Text(tr('case.aiRelated.none'))));
@@ -376,7 +392,10 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           child: TextField(
             controller: keyword,
             decoration: InputDecoration(labelText: tr('case.keyword'), hintText: tr('case.keywordHint'), border: const OutlineInputBorder(), isDense: true),
-            onChanged: (_) => setState(_refreshRelated),
+            onChanged: (_) => setState(() {
+              _refreshRelated();
+              _syncLocal();
+            }),
             onSubmitted: (_) => _search(),
           ),
         ),
@@ -494,7 +513,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     try {
       final downloaded = country == Country.tw
           ? await store.syncDataset(datasetFiles(DateTime.now(), months), onProgress: progress)
-          : await store.syncSource(sourcesFor(country), months, onProgress: progress, onBytes: bytes, onWait: wait, cancelled: () => dataStop);
+          : await store.syncSource(sourcesFor(country), months, keywords: _dataKeywords(), onProgress: progress, onBytes: bytes, onWait: wait, cancelled: () => dataStop);
       final v = await _DataView.ask(store.db, _filter(source: 'dataset'), downloaded, country);
       if (mounted) setState(() => data = v);
     } finally {
@@ -596,6 +615,32 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       ],
       note: tr('case.disclaimer'),
       sources: [if (st != null) tr('report.source.pcc'), if (v != null && vst != null) _sourceNote(v.country)],
+    );
+  }
+
+  /// 歐洲的 B2B 供應商名錄：沒有公開資料，也會擋程式，所以在 App 內的瀏覽器打開給使用者自己查
+  Widget _euDirectories(TextTheme t, ColorScheme cs) {
+    const sites = {
+      'Europages': 'https://www.europages.com/',
+      'WLW': 'https://www.wlw.de/',
+      'IndustryStock': 'https://www.industrystock.com/',
+      'Access2Markets': 'https://webgate.ec.europa.eu/procurement/',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('case.src.eu.b2b'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          for (final e in sites.entries)
+            OutlinedButton.icon(
+              key: ValueKey('eu.site:${e.key}'),
+              onPressed: () => openSiteInBrowser(context, Uri.parse(e.value)),
+              icon: const Icon(Icons.open_in_browser, size: 16),
+              label: Text(e.key),
+            ),
+        ]),
+      ]),
     );
   }
 
@@ -892,9 +937,10 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           TextField(
             key: const ValueKey('case.localKeywords'),
             controller: localKw,
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) => setState(() => _localEdited = true),
             decoration: InputDecoration(labelText: tr('case.data.kwLocal'), helperText: tr('case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
           ),
+          if (dataCountry == Country.eu && caseBrowserAvailable) _euDirectories(t, cs),
           if (dataCountry == Country.es) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('case.src.es.slow'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
         ],
         const SizedBox(height: 12),

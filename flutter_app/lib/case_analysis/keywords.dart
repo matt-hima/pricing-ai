@@ -99,7 +99,7 @@ List<String> localKeywords(String zhInput, Country c) {
   final out = <String>[];
   for (final (zh, uk, es, pt, jp) in _concepts) {
     if (!zh.any(zhInput.contains)) continue;
-    for (final k in switch (c) { Country.uk => uk, Country.es => es, Country.pt => pt, Country.jp => jp, Country.tw => const <String>[] }) {
+    for (final k in switch (c) { Country.uk => uk, Country.es => es, Country.pt => pt, Country.jp => jp, Country.eu => uk, Country.tw => const <String>[] }) {
       if (!out.contains(k)) out.add(k);
     }
   }
@@ -117,6 +117,7 @@ Future<List<String>> aiKeywords(Future<String> Function(String system, String us
     Country.es => 'Spanish, the wording used in Spanish public tender titles',
     Country.pt => 'Portuguese, the wording used in Portuguese public tender titles',
     Country.jp => 'Japanese, the wording used in Japanese public tender titles',
+    Country.eu => 'English, the wording used in the English titles of EU public tender notices (TED)',
   };
   final system = 'You help search a public procurement site that matches the search text as one continuous phrase (no AND / OR). '
       'Given a search keyword, list other short words or phrases that tender titles commonly use for the same kind of work, written in $language. '

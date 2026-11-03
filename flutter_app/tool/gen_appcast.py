@@ -8,7 +8,7 @@ import html, os, re, sys
 from email.utils import formatdate
 
 REPO = "https://github.com/matt-hima/pricing-ai"
-MIN_MACOS = "10.15"
+MIN_MACOS = "11.0"
 
 
 def md_to_html(md):

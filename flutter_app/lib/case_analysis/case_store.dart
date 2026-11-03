@@ -8,6 +8,7 @@ import 'sources/es.dart';
 import 'sources/jp.dart';
 import 'sources/pt.dart';
 import 'sources/source.dart';
+import 'sources/ted.dart';
 import 'sources/uk.dart';
 
 /// 下載官方資料檔用：先問大小（HEAD），需要時才下載內容。找不到或連不上回傳 null。
@@ -68,6 +69,7 @@ class CaseStore {
   Future<int> syncSource(
     List<AwardSource> sources,
     int months, {
+    List<String> keywords = const [],
     void Function(int done, int total)? onProgress,
     void Function(int bytes)? onBytes,
     void Function(Duration wait)? onWait,
@@ -80,7 +82,7 @@ class CaseStore {
     final t = now ?? DateTime.now();
     final work = [
       for (final s in sources)
-        for (final u in s.units(t, months)) (s, u),
+        for (final u in s.unitsFor(t, months, keywords)) (s, u),
     ];
     var fetched = 0;
     for (var i = 0; i < work.length; i++) {
@@ -164,6 +166,15 @@ class _ProgressHttp implements SourceHttp {
   }
 
   @override
+  Future<String?> postJson(Uri url, String body, {void Function(Duration wait)? onWait}) {
+    _check();
+    return inner.postJson(url, body, onWait: (d) {
+      wait?.call(d);
+      onWait?.call(d);
+    });
+  }
+
+  @override
   Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait}) {
     _check();
     return inner.download(url, onBytes: (n) {
@@ -184,4 +195,5 @@ List<AwardSource> sourcesFor(Country c) => switch (c) {
       Country.es => [SpainSource()],
       Country.pt => [PortugalSource()],
       Country.jp => [JapanSource()],
+      Country.eu => [TedSource()],
     };

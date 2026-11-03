@@ -2,7 +2,7 @@
 """Pricing AI のトップページ（ランディング）を 5 言語ぶん生成する。出力は landing/ 。
 `/` = 英語（x-default）、`/zh/ /ja/ /pt/ /es/` = 各言語。アプリ本体は `/app/`（tool/build_site.sh）。
 お問い合わせは公開 Google フォームの formResponse に POST する（サーバー不要）。"""
-import html, json, os, sys
+import html, json, os, re, sys
 
 ORIGIN = "https://pricingai.minervaelectronics.com"
 FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSftIALXY-dzznZsvA9nrszx723XOYqCrMdj4Arj8bzMfWZDPg/formResponse"
@@ -136,7 +136,9 @@ T = {
 }
 
 # ===== 下載優先（像 VPN 軟體的官網）：主要動作是下載 Mac / Windows App，網頁版是次要選項 =====
-VERSION = "0.1.0"
+# 建置時的版本（取自 pubspec.yaml）只是備用：頁面載入後會向 GitHub 查最新發佈的版本（見下方 script 的 #dl-ver）
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pubspec.yaml"), encoding="utf-8") as _f:
+    VERSION = re.search(r"^version:\s*([^\s+]+)", _f.read(), re.M).group(1)
 # 安裝檔的公開下載網址（Firebase 免費方案不允許放 .dmg / .exe，所以安裝檔放在別處，例如公開的 GitHub Releases）。
 # 填好就是直接下載；空字串 = 還沒公開，按鈕改成「搶先使用」並打開聯絡表單。
 REPO_URL = "https://github.com/matt-hima/pricing-ai"  # 公開的原始碼（Apache-2.0）與安裝檔（Releases）
@@ -371,7 +373,7 @@ def page(code):
 <p class="lead">{e(t['lead'])}</p>
 <div class="dlbox" {dlattrs}>
 <a id="dl-main" class="btn primary big" href="#download">{e(d['any'] if released else d['early_any'])}</a>
-<p class="meta">{e(d['meta'].format(v=VERSION))}</p>
+<p class="meta">{e(d['meta'].split('{v}')[0])}<span id="dl-ver">{e(VERSION)}</span>{e(d['meta'].split('{v}')[1])}</p>
 <p class="alt"><span id="dl-also" hidden>{e(d['also'])} <a id="dl-other" href="#download"></a> · </span><a href="{app}">{e(d['web'])}</a></p>
 <p class="note" id="dl-other-os" hidden>{e(d['other_os'])}</p>
 </div>
@@ -503,6 +505,21 @@ JS = """// 語言：第一次打開 /（英文預設頁）時依瀏覽器的偏�
 // 聯絡表單：公開 Google フォームの formResponse に直接 POST する（サーバー不要・応答は読めないので送れた時点で成功扱い）。
 (function () {
   var box = document.querySelector(".dlbox");
+  // 版本號直接取自 GitHub 最新發佈（tag v0.2.4 → 0.2.4）；查不到就維持建置時寫進頁面的版本
+  var ver = document.getElementById("dl-ver");
+  if (ver && window.fetch) {
+    var show = function (v) { if (/^[0-9]+([.][0-9]+)*$/.test(v)) ver.textContent = v; };
+    try { var c = sessionStorage.getItem("pricingai.ver"); if (c) show(c); } catch (e) {}
+    fetch("https://api.github.com/repos/matt-hima/pricing-ai/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var v = j && typeof j.tag_name === "string" ? j.tag_name.replace(/^v/, "") : "";
+        if (!v) return;
+        show(v);
+        try { sessionStorage.setItem("pricingai.ver", v); } catch (e) {}
+      })
+      .catch(function () {});
+  }
   if (box) {
     var ua = navigator.userAgent || "", plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
     var touch = navigator.maxTouchPoints > 1;

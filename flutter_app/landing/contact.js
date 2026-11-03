@@ -35,6 +35,21 @@
 // 聯絡表單：公開 Google フォームの formResponse に直接 POST する（サーバー不要・応答は読めないので送れた時点で成功扱い）。
 (function () {
   var box = document.querySelector(".dlbox");
+  // 版本號直接取自 GitHub 最新發佈（tag v0.2.4 → 0.2.4）；查不到就維持建置時寫進頁面的版本
+  var ver = document.getElementById("dl-ver");
+  if (ver && window.fetch) {
+    var show = function (v) { if (/^[0-9]+([.][0-9]+)*$/.test(v)) ver.textContent = v; };
+    try { var c = sessionStorage.getItem("pricingai.ver"); if (c) show(c); } catch (e) {}
+    fetch("https://api.github.com/repos/matt-hima/pricing-ai/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var v = j && typeof j.tag_name === "string" ? j.tag_name.replace(/^v/, "") : "";
+        if (!v) return;
+        show(v);
+        try { sessionStorage.setItem("pricingai.ver", v); } catch (e) {}
+      })
+      .catch(function () {});
+  }
   if (box) {
     var ua = navigator.userAgent || "", plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
     var touch = navigator.maxTouchPoints > 1;

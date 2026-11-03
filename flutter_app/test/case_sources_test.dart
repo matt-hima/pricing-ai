@@ -277,6 +277,9 @@ class _FakeHttp implements SourceHttp {
   }
 
   @override
+  Future<String?> postJson(Uri url, String body, {void Function(Duration wait)? onWait}) async => null;
+
+  @override
   Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait}) async {
     onBytes?.call(4 << 20); // 收到 4 MB 後連線中斷
     return null;

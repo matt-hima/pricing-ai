@@ -67,13 +67,17 @@ class _SourceHttp implements SourceHttp {
     return HttpClient(context: ctx)..connectionTimeout = const Duration(seconds: 20);
   }
 
-  /// GET；伺服器要求等待（429 / 503 + Retry-After）就照做再試，最多 5 次
-  Future<HttpClientResponse?> _get(Uri url, void Function(Duration wait)? onWait) async {
+  /// GET（有 [body] 時是 POST JSON）；伺服器要求等待（429 / 503 + Retry-After）就照做再試，最多 5 次
+  Future<HttpClientResponse?> _get(Uri url, void Function(Duration wait)? onWait, {String? body}) async {
     for (var attempt = 0; attempt < 6; attempt++) {
       final http = _client(url);
       try {
-        final req = await http.getUrl(url);
+        final req = body == null ? await http.getUrl(url) : await http.postUrl(url);
         req.headers.set(HttpHeaders.userAgentHeader, 'PricingAI/0.1 (+https://github.com/matt-hima/pricing-ai)');
+        if (body != null) {
+          req.headers.contentType = ContentType.json;
+          req.add(utf8.encode(body));
+        }
         final res = await req.close().timeout(const Duration(seconds: 60));
         if (res.statusCode == 200) return res;
         await res.drain<void>();
@@ -92,6 +96,17 @@ class _SourceHttp implements SourceHttp {
   @override
   Future<String?> getText(Uri url, {void Function(Duration wait)? onWait}) async {
     final res = await _get(url, onWait);
+    if (res == null) return null;
+    try {
+      return await res.transform(utf8.decoder).join().timeout(const Duration(minutes: 2));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<String?> postJson(Uri url, String body, {void Function(Duration wait)? onWait}) async {
+    final res = await _get(url, onWait, body: body);
     if (res == null) return null;
     try {
       return await res.transform(utf8.decoder).join().timeout(const Duration(minutes: 2));
