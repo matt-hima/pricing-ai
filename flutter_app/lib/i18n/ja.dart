@@ -834,6 +834,8 @@ const Map<String, String> jaStrings = {
   'case.browser.next': "次の検索へ",
   'case.related': "関連キーワード：",
   'case.related.help': "調達サイトは検索語を一続きの文字列として照合する（空白は無視）ため、「網站」では「網頁」「官網」の案件は見つかりません。チェックした語は別々に検索して結合します。",
+  'case.aiRelated': "AIで関連語を提案",
+  'case.aiRelated.none': "ローカルモデルは他の言い方を見つけられませんでした。",
   'case.google': "Google AI モード",
   'case.google.marketQuery': "台湾の政府調達「{k}」案件の一般的な落札金額、よく落札する企業、見積もりの注意点",
   'case.google.companyQuery': "「{name}」（統一編號 {id}）の会社概要、主な事業、政府調達の落札実績、関連ニュース",

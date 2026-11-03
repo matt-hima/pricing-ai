@@ -834,6 +834,8 @@ const Map<String, String> enStrings = {
   'case.browser.next': "Continue to the next search",
   'case.related': "Related search terms:",
   'case.related.help': "The procurement site matches the search text as one continuous phrase (spaces are ignored), so 網站 does not find 網頁 or 官網 cases. Checked terms are searched separately and merged.",
+  'case.aiRelated': "AI suggest terms",
+  'case.aiRelated.none': "The local model found no other wordings.",
   'case.google': "Google AI Mode",
   'case.google.marketQuery': "Taiwan government procurement \"{k}\" tenders: typical award amounts, frequent winning vendors and pricing tips",
   'case.google.companyQuery': "\"{name}\" (tax ID {id}): company profile, main business, Taiwan government contracts won and recent news",

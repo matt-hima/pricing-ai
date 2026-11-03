@@ -834,6 +834,8 @@ const Map<String, String> esStrings = {
   'case.browser.next': "Continuar con la siguiente",
   'case.related': "Términos relacionados:",
   'case.related.help': "El sitio compara el término como una frase continua (se ignoran los espacios), así que 網站 no encuentra casos de 網頁 u 官網. Los términos marcados se buscan por separado y se combinan.",
+  'case.aiRelated': "Sugerir términos con IA",
+  'case.aiRelated.none': "El modelo local no encontró otras formas de escribirlo.",
   'case.google': "Google Modo IA",
   'case.google.marketQuery': "Licitaciones del gobierno de Taiwán \"{k}\": importes típicos, proveedores ganadores frecuentes y consejos de precio",
   'case.google.companyQuery': "\"{name}\" (NIF de Taiwán {id}): perfil, actividad principal, contratos públicos ganados y noticias",

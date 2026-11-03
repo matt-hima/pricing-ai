@@ -102,6 +102,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   List<String> related = [];
   final Set<String> picked = {};
   String _relatedFor = '';
+  bool suggesting = false;
 
   void _refreshRelated() {
     final k = keyword.text.trim();
@@ -112,6 +113,29 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       ..clear()
       ..addAll(related.take(3));
   }
+  /// 請本機模型提出相關查詢字，加進「相關查詢字」並預設勾選
+  Future<void> _aiRelated() async {
+    final k = keyword.text.trim();
+    if (k.isEmpty || suggesting) return;
+    final m = ScaffoldMessenger.of(context);
+    setState(() => suggesting = true);
+    try {
+      final found = await s.withModel((ask) => aiKeywords((a, b, c) => ask(a, b, schema: c), k, dataCountry));
+      if (!mounted) return;
+      setState(() {
+        for (final w in found) {
+          if (!related.contains(w)) related.add(w);
+          picked.add(w);
+        }
+      });
+      if (found.isEmpty) m.showSnackBar(SnackBar(content: Text(tr('case.aiRelated.none'))));
+    } catch (e) {
+      m.showSnackBar(SnackBar(content: Text(errText(e))));
+    } finally {
+      if (mounted) setState(() => suggesting = false);
+    }
+  }
+
   List<AwardCase> get cases => col.cases;
   Map<String, AwardDetail> get details => col.details;
   int get total => col.total;
@@ -396,6 +420,12 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             icon: const Icon(Icons.school_outlined, size: 18),
             label: Text(tr('learn.button')),
           ),
+        OutlinedButton.icon(
+          key: const ValueKey('case.aiRelated'),
+          onPressed: keyword.text.trim().isEmpty || suggesting || s.busy ? null : _aiRelated,
+          icon: const Icon(Icons.auto_awesome, size: 18),
+          label: Text(tr('case.aiRelated')),
+        ),
         if (related.isNotEmpty)
           SizedBox(
             width: double.infinity,

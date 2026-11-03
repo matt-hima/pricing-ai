@@ -835,6 +835,8 @@ const Map<String, String> zhStrings = {
   'case.browser.next': "繼續下一個查詢",
   'case.related': "相關查詢字：",
   'case.related.help': "採購網把查詢字當成一整串連續文字比對（空白會被忽略），所以「網站」找不到「網頁」「官網」的案子。勾選的字會分開查詢再合併。",
+  'case.aiRelated': "AI 建議查詢字",
+  'case.aiRelated.none': "本機模型沒有想到其他寫法。",
   'case.google': "Google AI 模式",
   'case.google.marketQuery': "台灣政府採購「{k}」標案的一般決標金額、常見得標廠商與報價注意事項",
   'case.google.companyQuery': "「{name}」 統一編號 {id} 公司簡介、主要業務、政府標案得標紀錄與相關新聞",
