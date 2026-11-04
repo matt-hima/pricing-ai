@@ -917,6 +917,8 @@ const Map<String, String> ptStrings = {
   'case.country.eu': "União Europeia",
   'case.data.kwLocal': "Palavras-chave no idioma local (separadas por vírgula)",
   'case.data.kwHint': "Preenchidas a partir da palavra-chave acima com os termos locais mais comuns; edite à vontade. A pesquisa ignora maiúsculas e acentos.",
+  'case.data.kwLocal.eu': "Palavras-chave em inglês (separadas por vírgula)",
+  'case.data.kwHint.eu': "Os avisos do TED têm título em inglês em todos os países da UE, por isso a pesquisa é em inglês. Preenchidas a partir da palavra-chave acima; edite à vontade. A pesquisa ignora maiúsculas e acentos.",
   'case.src.uk.sub': "APIs oficiais do governo do Reino Unido: avisos de adjudicação do Contracts Finder (contratos de menor valor em Inglaterra) e do Find a Tender (contratos de maior valor em todo o Reino Unido), obtidos mês a mês.",
   'case.src.es.sub': "Dados abertos da Plataforma de Contratação do Setor Público de Espanha (PLACSP): um ficheiro por mês com concursos adjudicados, adjudicatários, número de propostas e orçamentos (sem contratos menores).",
   'case.src.pt.sub': "Contratos públicos registados no Portal BASE (IMPIC), um ficheiro por ano, com adjudicatários, preço base e número de concorrentes.",

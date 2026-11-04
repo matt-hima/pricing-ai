@@ -591,7 +591,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           ReportSection(
             '${tr('case.data')} · ${tr('case.country.${v.country.name}')}',
             lines: [
-              if (v.country != Country.tw) _kv(tr('case.data.kwLocal'), v.keywords.join(Lang.list)),
+              if (v.country != Country.tw) _kv(tr(v.country == Country.eu ? 'case.data.kwLocal.eu' : 'case.data.kwLocal'), v.keywords.join(Lang.list)),
               tr('hist.f.price', {'n': '${vst.count}', 'median': v.money(vst.median), 'p25': v.short(vst.p25), 'p75': v.short(vst.p75)}),
             ],
             bullets: [
@@ -938,7 +938,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
             key: const ValueKey('case.localKeywords'),
             controller: localKw,
             onChanged: (_) => setState(() => _localEdited = true),
-            decoration: InputDecoration(labelText: tr('case.data.kwLocal'), helperText: tr('case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: tr(dataCountry == Country.eu ? 'case.data.kwLocal.eu' : 'case.data.kwLocal'), helperText: tr(dataCountry == Country.eu ? 'case.data.kwHint.eu' : 'case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
           ),
           if (dataCountry == Country.eu && caseBrowserAvailable) _euDirectories(t, cs),
           if (dataCountry == Country.es) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('case.src.es.slow'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),

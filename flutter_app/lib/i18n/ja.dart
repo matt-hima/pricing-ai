@@ -917,6 +917,8 @@ const Map<String, String> jaStrings = {
   'case.country.eu': "EU",
   'case.data.kwLocal': "現地語のキーワード（カンマ区切り）",
   'case.data.kwHint': "上のキーワードから現地でよく使われる表記を入れています。自由に編集できます。大文字小文字とアクセントは区別しません。",
+  'case.data.kwLocal.eu': "英語のキーワード（カンマ区切り）",
+  'case.data.kwHint.eu': "EU 各国の公告には英語のタイトルがあるため、英語で照合します。上のキーワードから英語の表記を入れています。自由に編集できます。大文字小文字とアクセントは区別しません。",
   'case.src.uk.sub': "英国政府の公式 API：Contracts Finder（イングランドの中小規模契約）と Find a Tender（英国全体の高額契約）の落札公告を月ごとに取得します。",
   'case.src.es.sub': "スペイン公共部門調達プラットフォーム（PLACSP）のオープンデータ：月ごとのファイルで、落札済みの案件、落札者、入札数、予算を含みます（少額契約は含みません）。",
   'case.src.pt.sub': "ポルトガル Portal BASE（IMPIC）に登録された公共契約。年ごとのファイルで、落札者、基準価格、競争者数を含みます。",

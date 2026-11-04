@@ -918,6 +918,8 @@ const Map<String, String> zhStrings = {
   'case.country.eu': "歐盟",
   'case.data.kwLocal': "當地語言的關鍵字（用逗號分隔）",
   'case.data.kwHint': "已依上面的中文關鍵字帶入當地常見的寫法，可以自己修改。比對時不分大小寫與重音符號。",
+  'case.data.kwLocal.eu': "英文關鍵字（用逗號分隔）",
+  'case.data.kwHint.eu': "歐盟各國的公告都有英文標題，所以用英文比對。已依上面的中文關鍵字帶入英文寫法，可以自己修改。比對時不分大小寫與重音符號。",
   'case.src.uk.sub': "英國政府的官方 API：Contracts Finder（英格蘭的中小金額合約）與 Find a Tender（全英國的高金額合約）的決標公告，依月份取得。",
   'case.src.es.sub': "西班牙公共部門採購平台（PLACSP）的開放資料：每月一個檔，含已決標的案件、得標廠商、投標家數與預算（不含小額合約 contratos menores）。",
   'case.src.pt.sub': "葡萄牙 Portal BASE（IMPIC）登錄的公共合約，每年一個檔，含得標廠商、底價與競爭廠商數。",

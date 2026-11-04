@@ -917,6 +917,8 @@ const Map<String, String> enStrings = {
   'case.country.eu': "European Union",
   'case.data.kwLocal': "Keywords in the local language (comma separated)",
   'case.data.kwHint': "Filled in from the keyword above with common local wording; edit as needed. Matching ignores case and accents.",
+  'case.data.kwLocal.eu': "Keywords in English (comma separated)",
+  'case.data.kwHint.eu': "TED notices have English titles for every EU country, so matching is in English. Filled in from the keyword above; edit as needed. Matching ignores case and accents.",
   'case.src.uk.sub': "Official UK government APIs: award notices from Contracts Finder (lower-value contracts in England) and Find a Tender (higher-value contracts across the UK), fetched month by month.",
   'case.src.es.sub': "Open data from Spain's Public Sector Procurement Platform (PLACSP): one file per month with awarded tenders, winners, number of bids and budgets (minor contracts not included).",
   'case.src.pt.sub': "Public contracts registered on Portugal's Portal BASE (IMPIC), one file per year, with winners, base prices and number of competitors.",
