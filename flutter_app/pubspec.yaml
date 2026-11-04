@@ -1,7 +1,7 @@
 name: self_quote
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.2.0+2
+version: 0.2.5+7
 
 environment:
   sdk: ^3.12.2
@@ -12,6 +12,7 @@ dependencies:
   drift: ^2.35.3
   drift_flutter: ^0.3.1
   file_selector: ^1.1.0
+  firebase_core: ^5.1.0
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.1.5

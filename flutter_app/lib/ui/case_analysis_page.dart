@@ -13,6 +13,7 @@ import '../case_analysis/case_report.dart';
 import '../case_analysis/case_store.dart';
 import '../case_analysis/case_store_open.dart';
 import '../case_analysis/case_summary.dart' show priceFacts, competitionFacts;
+import '../case_analysis/page_reader.dart' show proposeMapping;
 import '../case_analysis/pcc.dart';
 import '../case_analysis/sources/source.dart';
 import '../case_analysis/tender.dart';
@@ -25,6 +26,7 @@ import 'case_browser_dialog.dart';
 import 'chart_frame.dart';
 import 'competitor_dialog.dart';
 import 'save_file.dart';
+import 'site_learn_dialog.dart';
 
 /// 案件分析：查政府電子採購網的決標公告 → 同類案件的金額分布、機關、得標廠商 → 對照自己的報價
 class CaseAnalysisPage extends StatefulWidget {
@@ -79,12 +81,22 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   Country dataCountry = Country.tw;
   final localKw = TextEditingController();
 
+  /// 使用者自己改過當地關鍵字：之後改中文關鍵字就不再覆蓋
+  bool _localEdited = false;
+
   void _pickCountry(Country c) {
     setState(() {
       dataCountry = c;
       data = null;
-      localKw.text = localKeywords(keyword.text.trim(), c).join(', ');
+      _localEdited = false;
+      _syncLocal();
     });
+  }
+
+  /// 當地關鍵字跟著中文關鍵字走（使用者沒自己改過時）
+  void _syncLocal() {
+    if (dataCountry == Country.tw || _localEdited) return;
+    localKw.text = localKeywords(keyword.text.trim(), dataCountry).join(', ');
   }
 
   List<String> _dataKeywords() => dataCountry == Country.tw
@@ -100,6 +112,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
   List<String> related = [];
   final Set<String> picked = {};
   String _relatedFor = '';
+  bool suggesting = false;
 
   void _refreshRelated() {
     final k = keyword.text.trim();
@@ -110,6 +123,35 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       ..clear()
       ..addAll(related.take(3));
   }
+  /// 請本機模型提出相關查詢字，加進「相關查詢字」並預設勾選
+  Future<void> _aiRelated() async {
+    final k = keyword.text.trim();
+    if (k.isEmpty || suggesting) return;
+    final m = ScaffoldMessenger.of(context);
+    setState(() => suggesting = true);
+    try {
+      final found = await s.withModel((ask) => aiKeywords((a, b, c) => ask(a, b, schema: c), k, dataCountry));
+      if (!mounted) return;
+      setState(() {
+        if (dataCountry == Country.tw) {
+          for (final w in found) {
+            if (!related.contains(w)) related.add(w);
+            picked.add(w);
+          }
+        } else {
+          // 外文的字進當地關鍵字欄位（台灣的相關查詢字是中文）
+          final have = _dataKeywords();
+          localKw.text = [...have, for (final w in found) if (!have.contains(w)) w].join(', ');
+        }
+      });
+      if (found.isEmpty) m.showSnackBar(SnackBar(content: Text(tr('case.aiRelated.none'))));
+    } catch (e) {
+      m.showSnackBar(SnackBar(content: Text(errText(e))));
+    } finally {
+      if (mounted) setState(() => suggesting = false);
+    }
+  }
+
   List<AwardCase> get cases => col.cases;
   Map<String, AwardDetail> get details => col.details;
   int get total => col.total;
@@ -350,7 +392,10 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           child: TextField(
             controller: keyword,
             decoration: InputDecoration(labelText: tr('case.keyword'), hintText: tr('case.keywordHint'), border: const OutlineInputBorder(), isDense: true),
-            onChanged: (_) => setState(_refreshRelated),
+            onChanged: (_) => setState(() {
+              _refreshRelated();
+              _syncLocal();
+            }),
             onSubmitted: (_) => _search(),
           ),
         ),
@@ -382,6 +427,23 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           onPressed: keyword.text.trim().isEmpty ? null : () => openGoogleAiMode(context, tr('case.google.marketQuery', {'k': keyword.text.trim()})),
           icon: const Icon(Icons.travel_explore, size: 18),
           label: Text(tr('case.google')),
+        ),
+        if (caseBrowserAvailable)
+          OutlinedButton.icon(
+            key: const ValueKey('learn.open'),
+            onPressed: () => openSiteLearn(
+              context,
+              propose: (page, kind) => s.withModel((ask) => proposeMapping((a, b, c) => ask(a, b, schema: c), page, kind)),
+              modelTip: RegExp(r'7B|8B').hasMatch(s.modelBase) ? null : tr('learn.modelTip'),
+            ),
+            icon: const Icon(Icons.school_outlined, size: 18),
+            label: Text(tr('learn.button')),
+          ),
+        OutlinedButton.icon(
+          key: const ValueKey('case.aiRelated'),
+          onPressed: keyword.text.trim().isEmpty || suggesting || s.busy ? null : _aiRelated,
+          icon: const Icon(Icons.auto_awesome, size: 18),
+          label: Text(tr('case.aiRelated')),
         ),
         if (related.isNotEmpty)
           SizedBox(
@@ -451,7 +513,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
     try {
       final downloaded = country == Country.tw
           ? await store.syncDataset(datasetFiles(DateTime.now(), months), onProgress: progress)
-          : await store.syncSource(sourcesFor(country), months, onProgress: progress, onBytes: bytes, onWait: wait, cancelled: () => dataStop);
+          : await store.syncSource(sourcesFor(country), months, keywords: _dataKeywords(), onProgress: progress, onBytes: bytes, onWait: wait, cancelled: () => dataStop);
       final v = await _DataView.ask(store.db, _filter(source: 'dataset'), downloaded, country);
       if (mounted) setState(() => data = v);
     } finally {
@@ -529,7 +591,7 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           ReportSection(
             '${tr('case.data')} · ${tr('case.country.${v.country.name}')}',
             lines: [
-              if (v.country != Country.tw) _kv(tr('case.data.kwLocal'), v.keywords.join(Lang.list)),
+              if (v.country != Country.tw) _kv(tr(v.country == Country.eu ? 'case.data.kwLocal.eu' : 'case.data.kwLocal'), v.keywords.join(Lang.list)),
               tr('hist.f.price', {'n': '${vst.count}', 'median': v.money(vst.median), 'p25': v.short(vst.p25), 'p75': v.short(vst.p75)}),
             ],
             bullets: [
@@ -553,6 +615,32 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
       ],
       note: tr('case.disclaimer'),
       sources: [if (st != null) tr('report.source.pcc'), if (v != null && vst != null) _sourceNote(v.country)],
+    );
+  }
+
+  /// 歐洲的 B2B 供應商名錄：沒有公開資料，也會擋程式，所以在 App 內的瀏覽器打開給使用者自己查
+  Widget _euDirectories(TextTheme t, ColorScheme cs) {
+    const sites = {
+      'Europages': 'https://www.europages.com/',
+      'WLW': 'https://www.wlw.de/',
+      'IndustryStock': 'https://www.industrystock.com/',
+      'Access2Markets': 'https://webgate.ec.europa.eu/procurement/',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('case.src.eu.b2b'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          for (final e in sites.entries)
+            OutlinedButton.icon(
+              key: ValueKey('eu.site:${e.key}'),
+              onPressed: () => openSiteInBrowser(context, Uri.parse(e.value)),
+              icon: const Icon(Icons.open_in_browser, size: 16),
+              label: Text(e.key),
+            ),
+        ]),
+      ]),
     );
   }
 
@@ -849,9 +937,10 @@ class _CaseAnalysisPageState extends State<CaseAnalysisPage> {
           TextField(
             key: const ValueKey('case.localKeywords'),
             controller: localKw,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(labelText: tr('case.data.kwLocal'), helperText: tr('case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
+            onChanged: (_) => setState(() => _localEdited = true),
+            decoration: InputDecoration(labelText: tr(dataCountry == Country.eu ? 'case.data.kwLocal.eu' : 'case.data.kwLocal'), helperText: tr(dataCountry == Country.eu ? 'case.data.kwHint.eu' : 'case.data.kwHint'), border: const OutlineInputBorder(), isDense: true),
           ),
+          if (dataCountry == Country.eu && caseBrowserAvailable) _euDirectories(t, cs),
           if (dataCountry == Country.es) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('case.src.es.slow'), style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
         ],
         const SizedBox(height: 12),

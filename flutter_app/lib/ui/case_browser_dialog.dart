@@ -94,6 +94,10 @@ Future<CaseCollection?> openCaseBrowser(BuildContext context, CaseQuery query, {
 Future<void> openGoogleAiMode(BuildContext context, String query) =>
     showDialog<void>(context: context, builder: (_) => CaseBrowserDialog(startUrl: googleAiMode(query)));
 
+/// 在 App 內的瀏覽器打開一個網站給使用者自己查（App 不讀取內容；供應商名錄網站不開放資料、也會擋程式）
+Future<void> openSiteInBrowser(BuildContext context, Uri url) =>
+    showDialog<void>(context: context, builder: (_) => CaseBrowserDialog(startUrl: url));
+
 /// 內嵌瀏覽器：顯示真正的網站，使用者自己瀏覽（翻頁、點開案件）。
 /// [query]：採購網模式，App 只讀取畫面上載入的採購網頁面（決標清單 → 案件，決標公告 → 投標廠商、預算）。
 /// [startUrl]：只是打開一個網頁給使用者看（例如 Google），不讀取內容。

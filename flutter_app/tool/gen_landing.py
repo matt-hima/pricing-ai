@@ -2,7 +2,7 @@
 """Pricing AI のトップページ（ランディング）を 5 言語ぶん生成する。出力は landing/ 。
 `/` = 英語（x-default）、`/zh/ /ja/ /pt/ /es/` = 各言語。アプリ本体は `/app/`（tool/build_site.sh）。
 お問い合わせは公開 Google フォームの formResponse に POST する（サーバー不要）。"""
-import html, json, os, sys
+import html, json, os, re, sys
 
 ORIGIN = "https://pricingai.minervaelectronics.com"
 FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSftIALXY-dzznZsvA9nrszx723XOYqCrMdj4Arj8bzMfWZDPg/formResponse"
@@ -136,7 +136,9 @@ T = {
 }
 
 # ===== 下載優先（像 VPN 軟體的官網）：主要動作是下載 Mac / Windows App，網頁版是次要選項 =====
-VERSION = "0.1.0"
+# 建置時的版本（取自 pubspec.yaml）只是備用：頁面載入後會向 GitHub 查最新發佈的版本（見下方 script 的 #dl-ver）
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pubspec.yaml"), encoding="utf-8") as _f:
+    VERSION = re.search(r"^version:\s*([^\s+]+)", _f.read(), re.M).group(1)
 # 安裝檔的公開下載網址（Firebase 免費方案不允許放 .dmg / .exe，所以安裝檔放在別處，例如公開的 GitHub Releases）。
 # 填好就是直接下載；空字串 = 還沒公開，按鈕改成「搶先使用」並打開聯絡表單。
 REPO_URL = "https://github.com/matt-hima/pricing-ai"  # 公開的原始碼（Apache-2.0）與安裝檔（Releases）
@@ -162,17 +164,17 @@ D = {
   nav="Download", badges=["Free download", "AI runs on your own computer", "No account needed"],
   mac="Download for macOS", win="Download for Windows", any="Download the app",
   early_mac="Get the Mac app", early_win="Get the Windows app", early_any="Get early access",
-  meta="Free · Version {v} · macOS 10.15+ · Windows 10/11 (64-bit)", also="Also available for", web="or use the browser version (no AI)",
+  meta="Free · Version {v} · macOS 11+ · Windows 10/11 (64-bit)", also="Also available for", web="or use the browser version (no AI)",
   early_note="The installers are in early access: leave your email and we will send you the download link.",
   other_os="On a phone or tablet? Open this page on your Mac or Windows computer to download.",
   d_title="Download Pricing AI", d_sub="One app for service pricing, booking sites, project estimates and government case analysis.",
-  mac_card=("macOS", "macOS 10.15 or later · Apple silicon or Intel", ".dmg"), win_card=("Windows", "Windows 10 or 11 · 64-bit", ".exe"),
+  mac_card=("macOS", "macOS 11 or later · Apple silicon or Intel", ".dmg"), win_card=("Windows", "Windows 10 or 11 · 64-bit", ".exe"),
   web_card=("Browser version", "No install. Pricing, the site builder and ZIP export work in your browser, without AI.", "Open in browser"),
   i_title="Install in 3 steps", i_steps=[("Download", "Click the download button for your computer."), ("Install", "Mac: open the .dmg and drag Pricing AI to Applications. Windows: run the installer."), ("Open", "Start Pricing AI. The first AI task downloads the AI engine and a model once (0.5–5 GB). After that the AI runs on your computer.")],
   cmp_title="Desktop app or browser?", cmp_sub="The browser version, including a shortcut that Chrome offers to install, is not the desktop app: it has no AI.",
   cmp_cols=("Feature", "Desktop app", "Browser"),
   cmp=[("Service pricing calculator", 1, 1), ("Booking site builder and ZIP export", 1, 1), ("Project estimate from the built-in price table", 1, 1), ("AI estimates and writing your site by chat", 1, 0), ("Government case analysis and AI summary of past cases", 1, 0), ("Competitor records and Google AI Mode lookups", 1, 0), ("One-click deploy to Firebase", 1, 0), ("Your data stays on your computer", 1, 1)],
-  r_title="System requirements", req=[("macOS", "10.15 or later. Apple silicon recommended (picture generation needs Apple silicon)."), ("Windows", "10 or 11, 64-bit. A graphics card with Vulkan support is recommended (NVIDIA, AMD or Intel)."), ("Memory", "8 GB RAM or more; 16 GB for the larger AI models."), ("Disk", "About 1–6 GB free for the AI engine and model."), ("Internet", "To download the AI model once, and to look up procurement cases.")],
+  r_title="System requirements", req=[("macOS", "11 or later. Apple silicon recommended (picture generation needs Apple silicon)."), ("Windows", "10 or 11, 64-bit. A graphics card with Vulkan support is recommended (NVIDIA, AMD or Intel)."), ("Memory", "8 GB RAM or more; 16 GB for the larger AI models."), ("Disk", "About 1–6 GB free for the AI engine and model."), ("Internet", "To download the AI model once, and to look up procurement cases.")],
   feat_case=("Government case analysis", "Search Taiwan's Government e-Procurement System inside the app: award amounts, competitors and their win records, with a local AI summary and Google AI Mode lookups."),
   faq_more=[("What is the difference between the app and the browser version?", "The desktop app adds local AI, government case analysis, competitor lookups and one-click deploy. The browser version is free and needs no install, but has no AI."), ("Chrome offers to install Pricing AI. Is that the app?", "No. Chrome installs the browser version as a shortcut called Pricing AI Web. For AI and case analysis, download the Mac or Windows app from this page.")],
   mock=["Service pricing", "Site builder", "Project estimate", "Case analysis"], mock_stats=[("Median award", "NT$982,500"), ("Middle 50%", "NT$426K – 1.71M"), ("Your quote", "Low end")]),
@@ -187,17 +189,17 @@ D = {
   nav="下載", badges=["免費下載", "AI 在你的電腦上執行", "免註冊帳號"],
   mac="下載 macOS 版", win="下載 Windows 版", any="下載 App",
   early_mac="取得 Mac 版", early_win="取得 Windows 版", early_any="搶先使用",
-  meta="免費 · 版本 {v} · macOS 10.15 以上 · Windows 10/11（64 位元）", also="也有", web="或使用網頁版（沒有 AI）",
+  meta="免費 · 版本 {v} · macOS 11 以上 · Windows 10/11（64 位元）", also="也有", web="或使用網頁版（沒有 AI）",
   early_note="安裝檔目前開放搶先使用：留下電子郵件，我們會寄下載連結給你。",
   other_os="正在用手機或平板？請在 Mac 或 Windows 電腦上打開這個網頁下載。",
   d_title="下載 Pricing AI", d_sub="服務定價、預約網站、專案估價與政府標案分析，一個 App 全部搞定。",
-  mac_card=("macOS", "macOS 10.15 以上 · Apple 晶片或 Intel", ".dmg"), win_card=("Windows", "Windows 10 或 11 · 64 位元", ".exe"),
+  mac_card=("macOS", "macOS 11 以上 · Apple 晶片或 Intel", ".dmg"), win_card=("Windows", "Windows 10 或 11 · 64 位元", ".exe"),
   web_card=("網頁版", "免安裝。價格計算、網站編輯與 ZIP 匯出都能在瀏覽器使用，但沒有 AI。", "在瀏覽器開啟"),
   i_title="三個步驟完成安裝", i_steps=[("下載", "按下符合你電腦的下載按鈕。"), ("安裝", "Mac：打開 .dmg，把 Pricing AI 拖到「應用程式」。Windows：執行安裝程式。"), ("開啟", "啟動 Pricing AI。第一次使用 AI 時會下載一次 AI 引擎與模型（0.5–5 GB），之後 AI 就在你的電腦上執行。")],
   cmp_title="桌面 App 還是網頁版？", cmp_sub="網頁版（包括 Chrome 提示「安裝」的捷徑）不是桌面 App，沒有 AI。",
   cmp_cols=("功能", "桌面 App", "網頁版"),
   cmp=[("服務定價計算", 1, 1), ("預約網站編輯與 ZIP 匯出", 1, 1), ("依內建價目表的專案估價", 1, 1), ("AI 估價、用對話寫網站", 1, 0), ("政府標案分析與歷史案件 AI 摘要", 1, 0), ("競爭對手紀錄與 Google AI 模式查詢", 1, 0), ("一鍵部署到 Firebase", 1, 0), ("資料留在你的電腦", 1, 1)],
-  r_title="系統需求", req=[("macOS", "10.15 以上。建議 Apple 晶片（繪製圖片需要 Apple 晶片）。"), ("Windows", "10 或 11，64 位元。建議有支援 Vulkan 的顯示卡（NVIDIA、AMD 或 Intel）。"), ("記憶體", "8 GB 以上；較大的 AI 模型建議 16 GB。"), ("硬碟", "AI 引擎與模型約需 1–6 GB 空間。"), ("網路", "第一次下載 AI 模型，以及查詢採購案件時需要。")],
+  r_title="系統需求", req=[("macOS", "11 以上。建議 Apple 晶片（繪製圖片需要 Apple 晶片）。"), ("Windows", "10 或 11，64 位元。建議有支援 Vulkan 的顯示卡（NVIDIA、AMD 或 Intel）。"), ("記憶體", "8 GB 以上；較大的 AI 模型建議 16 GB。"), ("硬碟", "AI 引擎與模型約需 1–6 GB 空間。"), ("網路", "第一次下載 AI 模型，以及查詢採購案件時需要。")],
   feat_case=("政府標案分析", "在 App 內查詢政府電子採購網：決標金額、競爭對手與他們的得標紀錄，並有本機 AI 摘要與 Google AI 模式查詢。"),
   faq_more=[("桌面 App 和網頁版有什麼不同？", "桌面 App 多了本機 AI、政府標案分析、競爭對手查詢與一鍵部署。網頁版免費、免安裝，但沒有 AI。"), ("Chrome 提示可以「安裝」Pricing AI，那是桌面 App 嗎？", "不是。Chrome 安裝的是網頁版的捷徑（名稱為 Pricing AI Web）。要使用 AI 與標案分析，請從這個網頁下載 Mac 或 Windows App。")],
   mock=["服務定價", "網站建置", "專案估價", "案件分析"], mock_stats=[("決標金額中位數", "NT$982,500"), ("中間 50%", "NT$42.6萬 – 171萬"), ("你的報價", "低價區")]),
@@ -212,17 +214,17 @@ D = {
   nav="ダウンロード", badges=["無料ダウンロード", "AIは自分のパソコンで動作", "アカウント登録不要"],
   mac="macOS版をダウンロード", win="Windows版をダウンロード", any="アプリをダウンロード",
   early_mac="Mac版を入手", early_win="Windows版を入手", early_any="先行利用を申し込む",
-  meta="無料 · バージョン {v} · macOS 10.15以降 · Windows 10/11（64ビット）", also="こちらも：", web="またはブラウザ版を使う（AIなし）",
+  meta="無料 · バージョン {v} · macOS 11以降 · Windows 10/11（64ビット）", also="こちらも：", web="またはブラウザ版を使う（AIなし）",
   early_note="インストーラーは先行利用で提供中です。メールアドレスを送っていただければ、ダウンロードリンクをお送りします。",
   other_os="スマートフォンやタブレットをお使いですか？ MacまたはWindowsのパソコンでこのページを開いてダウンロードしてください。",
   d_title="Pricing AIをダウンロード", d_sub="サービス価格・予約サイト・開発の見積もり・政府調達の案件分析を、ひとつのアプリで。",
-  mac_card=("macOS", "macOS 10.15以降 · Apple シリコンまたはIntel", ".dmg"), win_card=("Windows", "Windows 10 / 11 · 64ビット", ".exe"),
+  mac_card=("macOS", "macOS 11以降 · Apple シリコンまたはIntel", ".dmg"), win_card=("Windows", "Windows 10 / 11 · 64ビット", ".exe"),
   web_card=("ブラウザ版", "インストール不要。価格計算、サイト作成、ZIP書き出しがブラウザで使えます（AIなし）。", "ブラウザで開く"),
   i_title="3ステップでインストール", i_steps=[("ダウンロード", "お使いのパソコン用のダウンロードボタンを押します。"), ("インストール", "Mac：.dmgを開き、Pricing AIを「アプリケーション」にドラッグ。Windows：インストーラーを実行。"), ("起動", "Pricing AIを起動します。最初のAI作業でAIエンジンとモデルを一度だけダウンロードします（0.5〜5 GB）。その後はパソコン上でAIが動きます。")],
   cmp_title="デスクトップアプリとブラウザ版", cmp_sub="ブラウザ版（Chromeが「インストール」を勧めるショートカットを含む）はデスクトップアプリではなく、AIがありません。",
   cmp_cols=("機能", "デスクトップアプリ", "ブラウザ版"),
   cmp=[("サービス価格の計算", 1, 1), ("予約サイトの作成とZIP書き出し", 1, 1), ("内蔵の料金表による開発の見積もり", 1, 1), ("AIの見積もり、チャットでのサイト作成", 1, 0), ("政府調達の案件分析と過去案件のAI要約", 1, 0), ("競合企業の記録とGoogle AIモードでの調査", 1, 0), ("Firebaseへのワンクリック公開", 1, 0), ("データは自分のパソコンに", 1, 1)],
-  r_title="動作環境", req=[("macOS", "10.15以降。Apple シリコン推奨（画像生成にはApple シリコンが必要）。"), ("Windows", "10 / 11（64ビット）。Vulkan対応のグラフィックス推奨（NVIDIA、AMD、Intel）。"), ("メモリ", "8 GB以上。大きいAIモデルには16 GB。"), ("ディスク", "AIエンジンとモデル用に約1〜6 GBの空き。"), ("インターネット", "AIモデルの初回ダウンロードと、調達案件の検索に使います。")],
+  r_title="動作環境", req=[("macOS", "11以降。Apple シリコン推奨（画像生成にはApple シリコンが必要）。"), ("Windows", "10 / 11（64ビット）。Vulkan対応のグラフィックス推奨（NVIDIA、AMD、Intel）。"), ("メモリ", "8 GB以上。大きいAIモデルには16 GB。"), ("ディスク", "AIエンジンとモデル用に約1〜6 GBの空き。"), ("インターネット", "AIモデルの初回ダウンロードと、調達案件の検索に使います。")],
   feat_case=("政府調達の案件分析", "アプリ内で台湾の政府電子調達システムを検索：落札金額、競合企業とその落札実績を、ローカルAIの要約やGoogle AIモードと合わせて確認できます。"),
   faq_more=[("デスクトップアプリとブラウザ版の違いは？", "デスクトップアプリには、ローカルAI、政府調達の案件分析、競合企業の調査、ワンクリック公開があります。ブラウザ版は無料でインストール不要ですが、AIはありません。"), ("Chromeが Pricing AI の「インストール」を勧めてきます。これはアプリですか？", "いいえ。Chromeがインストールするのはブラウザ版のショートカット（Pricing AI Web）です。AIや案件分析を使うには、このページからMacまたはWindowsのアプリをダウンロードしてください。")],
   mock=["サービス価格", "サイト作成", "開発の見積もり", "案件分析"], mock_stats=[("落札金額の中央値", "NT$982,500"), ("中間50%", "NT$42.6萬 – 171萬"), ("あなたの見積もり", "低価格帯")]),
@@ -237,17 +239,17 @@ D = {
   nav="Baixar", badges=["Download gratuito", "A IA roda no seu computador", "Sem cadastro"],
   mac="Baixar para macOS", win="Baixar para Windows", any="Baixar o app",
   early_mac="Obter o app para Mac", early_win="Obter o app para Windows", early_any="Pedir acesso antecipado",
-  meta="Grátis · Versão {v} · macOS 10.15+ · Windows 10/11 (64 bits)", also="Também para", web="ou use a versão do navegador (sem IA)",
+  meta="Grátis · Versão {v} · macOS 11+ · Windows 10/11 (64 bits)", also="Também para", web="ou use a versão do navegador (sem IA)",
   early_note="Os instaladores estão em acesso antecipado: deixe seu e-mail e enviaremos o link de download.",
   other_os="Está no celular ou tablet? Abra esta página no seu computador Mac ou Windows para baixar.",
   d_title="Baixe o Pricing AI", d_sub="Um app para preços de serviços, sites de reservas, orçamentos de projetos e análise de licitações públicas.",
-  mac_card=("macOS", "macOS 10.15 ou posterior · Apple silicon ou Intel", ".dmg"), win_card=("Windows", "Windows 10 ou 11 · 64 bits", ".exe"),
+  mac_card=("macOS", "macOS 11 ou posterior · Apple silicon ou Intel", ".dmg"), win_card=("Windows", "Windows 10 ou 11 · 64 bits", ".exe"),
   web_card=("Versão do navegador", "Sem instalação. Preços, editor de site e exportação em ZIP no navegador, sem IA.", "Abrir no navegador"),
   i_title="Instale em 3 passos", i_steps=[("Baixe", "Clique no botão de download do seu computador."), ("Instale", "Mac: abra o .dmg e arraste o Pricing AI para Aplicativos. Windows: execute o instalador."), ("Abra", "Inicie o Pricing AI. A primeira tarefa de IA baixa o motor e um modelo uma vez (0,5–5 GB). Depois, a IA roda no seu computador.")],
   cmp_title="App desktop ou navegador?", cmp_sub="A versão do navegador, inclusive o atalho que o Chrome oferece instalar, não é o app desktop: não tem IA.",
   cmp_cols=("Recurso", "App desktop", "Navegador"),
   cmp=[("Calculadora de preços de serviços", 1, 1), ("Editor de site de reservas e exportação em ZIP", 1, 1), ("Orçamento de projeto pela tabela embutida", 1, 1), ("Orçamentos com IA e site escrito por chat", 1, 0), ("Análise de licitações e resumo com IA", 1, 0), ("Histórico de concorrentes e Google Modo IA", 1, 0), ("Publicação no Firebase com um clique", 1, 0), ("Seus dados ficam no seu computador", 1, 1)],
-  r_title="Requisitos do sistema", req=[("macOS", "10.15 ou posterior. Recomendado Apple silicon (gerar imagens exige Apple silicon)."), ("Windows", "10 ou 11, 64 bits. Recomendada placa de vídeo com Vulkan (NVIDIA, AMD ou Intel)."), ("Memória", "8 GB de RAM ou mais; 16 GB para os modelos maiores."), ("Disco", "Cerca de 1–6 GB livres para o motor e o modelo de IA."), ("Internet", "Para baixar o modelo de IA uma vez e consultar licitações.")],
+  r_title="Requisitos do sistema", req=[("macOS", "11 ou posterior. Recomendado Apple silicon (gerar imagens exige Apple silicon)."), ("Windows", "10 ou 11, 64 bits. Recomendada placa de vídeo com Vulkan (NVIDIA, AMD ou Intel)."), ("Memória", "8 GB de RAM ou mais; 16 GB para os modelos maiores."), ("Disco", "Cerca de 1–6 GB livres para o motor e o modelo de IA."), ("Internet", "Para baixar o modelo de IA uma vez e consultar licitações.")],
   feat_case=("Análise de licitações públicas", "Pesquise o Sistema de Compras do governo de Taiwan dentro do app: valores adjudicados, concorrentes e seus históricos, com resumo por IA local e consultas no Google Modo IA."),
   faq_more=[("Qual a diferença entre o app e a versão do navegador?", "O app desktop acrescenta IA local, análise de licitações, consulta de concorrentes e publicação com um clique. A versão do navegador é gratuita e sem instalação, mas não tem IA."), ("O Chrome oferece instalar o Pricing AI. É o app?", "Não. O Chrome instala a versão do navegador como atalho (Pricing AI Web). Para IA e análise de licitações, baixe o app para Mac ou Windows nesta página.")],
   mock=["Preços", "Criar site", "Orçamento", "Licitações"], mock_stats=[("Mediana", "NT$982,500"), ("50% centrais", "NT$426K – 1.71M"), ("Seu orçamento", "Faixa baixa")]),
@@ -262,17 +264,17 @@ D = {
   nav="Descargar", badges=["Descarga gratuita", "La IA funciona en tu ordenador", "Sin cuenta"],
   mac="Descargar para macOS", win="Descargar para Windows", any="Descargar la app",
   early_mac="Obtener la app para Mac", early_win="Obtener la app para Windows", early_any="Pedir acceso anticipado",
-  meta="Gratis · Versión {v} · macOS 10.15+ · Windows 10/11 (64 bits)", also="También para", web="o usa la versión de navegador (sin IA)",
+  meta="Gratis · Versión {v} · macOS 11+ · Windows 10/11 (64 bits)", also="También para", web="o usa la versión de navegador (sin IA)",
   early_note="Los instaladores están en acceso anticipado: déjanos tu correo y te enviaremos el enlace de descarga.",
   other_os="¿Estás en un móvil o tableta? Abre esta página en tu ordenador Mac o Windows para descargar.",
   d_title="Descarga Pricing AI", d_sub="Una app para precios de servicios, webs de reservas, presupuestos de proyectos y análisis de licitaciones públicas.",
-  mac_card=("macOS", "macOS 10.15 o posterior · Apple silicon o Intel", ".dmg"), win_card=("Windows", "Windows 10 u 11 · 64 bits", ".exe"),
+  mac_card=("macOS", "macOS 11 o posterior · Apple silicon o Intel", ".dmg"), win_card=("Windows", "Windows 10 u 11 · 64 bits", ".exe"),
   web_card=("Versión de navegador", "Sin instalación. Precios, editor de webs y exportación en ZIP en tu navegador, sin IA.", "Abrir en el navegador"),
   i_title="Instala en 3 pasos", i_steps=[("Descarga", "Pulsa el botón de descarga de tu ordenador."), ("Instala", "Mac: abre el .dmg y arrastra Pricing AI a Aplicaciones. Windows: ejecuta el instalador."), ("Abre", "Inicia Pricing AI. La primera tarea de IA descarga una vez el motor y un modelo (0,5–5 GB). Después, la IA funciona en tu ordenador.")],
   cmp_title="¿App de escritorio o navegador?", cmp_sub="La versión de navegador, incluido el acceso directo que Chrome ofrece instalar, no es la app de escritorio: no tiene IA.",
   cmp_cols=("Función", "App de escritorio", "Navegador"),
   cmp=[("Calculadora de precios de servicios", 1, 1), ("Editor de web de reservas y exportación en ZIP", 1, 1), ("Presupuesto de proyecto con la tabla incluida", 1, 1), ("Presupuestos con IA y web escrita por chat", 1, 0), ("Análisis de licitaciones y resumen con IA", 1, 0), ("Historial de competidores y Google Modo IA", 1, 0), ("Publicación en Firebase con un clic", 1, 0), ("Tus datos se quedan en tu ordenador", 1, 1)],
-  r_title="Requisitos del sistema", req=[("macOS", "10.15 o posterior. Se recomienda Apple silicon (generar imágenes requiere Apple silicon)."), ("Windows", "10 u 11, 64 bits. Se recomienda una tarjeta gráfica con Vulkan (NVIDIA, AMD o Intel)."), ("Memoria", "8 GB de RAM o más; 16 GB para los modelos grandes."), ("Disco", "Unos 1–6 GB libres para el motor y el modelo de IA."), ("Internet", "Para descargar el modelo de IA una vez y consultar licitaciones.")],
+  r_title="Requisitos del sistema", req=[("macOS", "11 o posterior. Se recomienda Apple silicon (generar imágenes requiere Apple silicon)."), ("Windows", "10 u 11, 64 bits. Se recomienda una tarjeta gráfica con Vulkan (NVIDIA, AMD o Intel)."), ("Memoria", "8 GB de RAM o más; 16 GB para los modelos grandes."), ("Disco", "Unos 1–6 GB libres para el motor y el modelo de IA."), ("Internet", "Para descargar el modelo de IA una vez y consultar licitaciones.")],
   feat_case=("Análisis de licitaciones públicas", "Busca en el Sistema de Compras del gobierno de Taiwán dentro de la app: importes adjudicados, competidores y su historial, con resumen por IA local y consultas en Google Modo IA."),
   faq_more=[("¿En qué se diferencia la app de la versión de navegador?", "La app de escritorio añade IA local, análisis de licitaciones, consulta de competidores y publicación con un clic. La versión de navegador es gratuita y sin instalación, pero no tiene IA."), ("Chrome ofrece instalar Pricing AI. ¿Es la app?", "No. Chrome instala la versión de navegador como acceso directo (Pricing AI Web). Para la IA y el análisis de licitaciones, descarga la app para Mac o Windows desde esta página.")],
   mock=["Precios", "Crear web", "Presupuesto", "Licitaciones"], mock_stats=[("Mediana", "NT$982,500"), ("50 % central", "NT$426K – 1.71M"), ("Tu presupuesto", "Franja baja")]),
@@ -371,7 +373,7 @@ def page(code):
 <p class="lead">{e(t['lead'])}</p>
 <div class="dlbox" {dlattrs}>
 <a id="dl-main" class="btn primary big" href="#download">{e(d['any'] if released else d['early_any'])}</a>
-<p class="meta">{e(d['meta'].format(v=VERSION))}</p>
+<p class="meta">{e(d['meta'].split('{v}')[0])}<span id="dl-ver">{e(VERSION)}</span>{e(d['meta'].split('{v}')[1])}</p>
 <p class="alt"><span id="dl-also" hidden>{e(d['also'])} <a id="dl-other" href="#download"></a> · </span><a href="{app}">{e(d['web'])}</a></p>
 <p class="note" id="dl-other-os" hidden>{e(d['other_os'])}</p>
 </div>
@@ -503,6 +505,21 @@ JS = """// 語言：第一次打開 /（英文預設頁）時依瀏覽器的偏�
 // 聯絡表單：公開 Google フォームの formResponse に直接 POST する（サーバー不要・応答は読めないので送れた時点で成功扱い）。
 (function () {
   var box = document.querySelector(".dlbox");
+  // 版本號直接取自 GitHub 最新發佈（tag v0.2.4 → 0.2.4）；查不到就維持建置時寫進頁面的版本
+  var ver = document.getElementById("dl-ver");
+  if (ver && window.fetch) {
+    var show = function (v) { if (/^[0-9]+([.][0-9]+)*$/.test(v)) ver.textContent = v; };
+    try { var c = sessionStorage.getItem("pricingai.ver"); if (c) show(c); } catch (e) {}
+    fetch("https://api.github.com/repos/matt-hima/pricing-ai/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var v = j && typeof j.tag_name === "string" ? j.tag_name.replace(/^v/, "") : "";
+        if (!v) return;
+        show(v);
+        try { sessionStorage.setItem("pricingai.ver", v); } catch (e) {}
+      })
+      .catch(function () {});
+  }
   if (box) {
     var ua = navigator.userAgent || "", plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
     var touch = navigator.maxTouchPoints > 1;

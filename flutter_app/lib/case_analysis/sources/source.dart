@@ -11,7 +11,8 @@ enum Country {
   uk('GBP'),
   es('EUR'),
   pt('EUR'),
-  jp('JPY');
+  jp('JPY'),
+  eu('EUR');
 
   final String currency;
   const Country(this.currency);
@@ -52,7 +53,8 @@ class SourceAward {
 class SyncUnit {
   final String name; // 記在 dataset_file 的名稱，例如 'jp:2026'、'uk-cf:2026-10'
   final DateTime periodEnd; // 期間結束日；結束超過 [settledAfter] 就不再更新
-  const SyncUnit(this.name, this.periodEnd);
+  final List<String> keywords; // 依關鍵字查詢的來源（歐盟 TED）：這個單位只取標題符合的案件
+  const SyncUnit(this.name, this.periodEnd, {this.keywords = const []});
 }
 
 /// 一個資料來源
@@ -61,6 +63,9 @@ abstract class AwardSource {
 
   /// 這段期間要同步的單位（新到舊）
   List<SyncUnit> units(DateTime now, int months);
+
+  /// 依關鍵字查詢的來源（資料量太大，不能整批下載）：這段期間、這組關鍵字要同步的單位；其他來源忽略關鍵字
+  List<SyncUnit> unitsFor(DateTime now, int months, List<String> keywords) => units(now, months);
 
   /// 期間結束多久之後資料就不再變動
   Duration get settledAfter => const Duration(days: 45);
@@ -76,6 +81,7 @@ abstract class AwardSource {
 /// 伺服器回 429 / 503 時照它的 Retry-After 等待後再試，等待時呼叫 [onWait]。
 abstract class SourceHttp {
   Future<String?> getText(Uri url, {void Function(Duration wait)? onWait});
+  Future<String?> postJson(Uri url, String body, {void Function(Duration wait)? onWait});
   Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait});
 }
 

@@ -138,6 +138,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('foreign keywords follow the Chinese keyword until the user edits them', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    I18n.lang = Lang.zh;
+    final store = CaseStore(CaseDb(NativeDatabase.memory()), _FakeFetcher(''));
+    addTearDown(store.db.close);
+    tester.view.physicalSize = const Size(1100, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(home: CaseAnalysisPage(state: AppState(), openStore: () async => store)));
+    await tester.pumpAndSettle();
+    String local() => tester.widget<TextField>(find.byKey(const ValueKey('case.localKeywords'))).controller!.text;
+    await tester.tap(find.byKey(const ValueKey('country:uk')));
+    await tester.pump();
+    expect(local(), isEmpty);
+    await tester.enterText(find.byType(TextField).first, '網站');
+    await tester.pump();
+    expect(local(), contains('website')); // 先選國家、後輸入中文：也要帶入
+    await tester.enterText(find.byType(TextField).first, '教育訓練');
+    await tester.pump();
+    expect(local(), contains('training'));
+    expect(local(), isNot(contains('website')));
+    await tester.enterText(find.byKey(const ValueKey('case.localKeywords')), 'my own term');
+    await tester.enterText(find.byType(TextField).first, '翻譯');
+    await tester.pump();
+    expect(local(), 'my own term'); // 自己改過的不覆蓋
+  });
 }
 
 class _FakeFetcher implements DataFetcher {
@@ -161,6 +187,9 @@ class _UkHttp implements SourceHttp {
 
   @override
   Future<String?> getText(Uri url, {void Function(Duration wait)? onWait}) async => url.host.contains('contractsfinder') ? page : jsonEncode({'releases': []});
+
+  @override
+  Future<String?> postJson(Uri url, String body, {void Function(Duration wait)? onWait}) async => null;
 
   @override
   Future<File?> download(Uri url, {void Function(int bytes)? onBytes, void Function(Duration wait)? onWait}) async => null;

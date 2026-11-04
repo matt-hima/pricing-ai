@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   auto_updater_windows
   file_selector_windows
+  firebase_core
   flutter_inappwebview_windows
   pasteboard
   url_launcher_windows

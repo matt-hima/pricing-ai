@@ -82,7 +82,7 @@ Windows 版即將推出。
 
 | | |
 |---|---|
-| macOS | 10.15 以上；建議 Apple 晶片（繪製圖片需要 Apple 晶片） |
+| macOS | 11 以上；建議 Apple 晶片（繪製圖片需要 Apple 晶片） |
 | Windows | 10 或 11，64 位元；建議有支援 Vulkan 的顯示卡（NVIDIA、AMD 或 Intel） |
 | 記憶體 | 8 GB 以上；較大的 AI 模型建議 16 GB |
 | 硬碟 | AI 引擎與模型約需 1–6 GB 空間 |
